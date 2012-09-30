@@ -1,0 +1,39 @@
+
+body {
+  font-family: Helvetica;
+  font-size: 18px;
+}
+
+#wrapper {
+  width: 600px;
+  margin: 0 auto;
+  text-align: center;
+  letter-spacing: -1px;
+  font-size: 30px;
+}
+
+a {
+  color: navy;
+}
+
+#actions a {
+  padding-right: 30px;
+  font-size: 150%;
+  font-weight: bold;
+  text-decoration: none;
+  opacity: 0.5;
+  -webkit-font-smoothing: antialiased;
+}
+#actions a:hover {
+  opacity: 1;
+}
+
+#action-develop {
+  color: #FFB60A;
+}
+#action-accept {
+  color: #00E02D;
+}
+#action-reject {
+  color: #FA0000
+}
