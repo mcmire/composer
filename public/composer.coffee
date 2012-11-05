@@ -10,7 +10,6 @@
 "use strict"
 
 $ = -> document.querySelector.apply(document, arguments)
-Element::on = Element::addEventListener
 
 #---
 
@@ -57,6 +56,99 @@ loadAudioBuffers = (audioContext, urls, callback) ->
       request.send()
 
 #---
+
+class Player
+  constructor: (@composer, @sequences) ->
+    @loopIndex = 0
+
+  play: ->
+    @composer.checkAudioLoaded()
+    @isPlaying = true
+    @scheduledSequences = []
+    @scheduleNextSequences()
+
+  stop: ->
+    @isPlaying = false
+
+  setBpm: (bpm) ->
+    # 120 bpm is 120 beats / 60 seconds or 0.5 per beat
+    @bpm = bpm
+    @spb = 60 / @bpm
+    @tickSize = @beatsToTime(1)
+
+  # Convert some number of beats to time in seconds.
+  #
+  # Example:
+  #
+  #   # assume bpm = 120, so spb = 0.5
+  #   beatsToTime(4)  #=> 2 seconds
+  #
+  beatsToTime: (n) -> n * @spb
+
+  # Here's how times work:
+  #
+  # audioContext.currentTime starts at 0 (when the audioContext was created) and
+  # gets incremented indefinitely. The sequence, on the other hand, will reset
+  # to 0 when the sequence repeats. The sequence, then, might look something
+  # like this:
+  #
+  #   audioContext.currentTime: 0 10 20 30 40 50 60 70 80 ...
+  #   sequenceContextStartTime: 0       30       60       ...
+  #   event time:               0 10 20  0 10 20  0 10 20 ...
+  #   event audioContext time:  0 10 20 30 40 50 60 70 80 ...
+  #
+  scheduleNextSequences: ->
+    #console.log 'scheduleNextSequences'
+
+    if not @isPlaying or @loopIndex is LOOP_LENGTH
+      sequence.unschedule() for sequence in @scheduledSequences
+      return
+
+    currentTime = @audioContext.currentTime
+
+    # Remove sequences that have ended
+    i = @scheduledSequences.length-1
+    while i >= 0
+      if currentTime > @scheduledSequences[i].audioContextEndTime
+        @scheduledSequences.splice(i, 1)
+      i--
+
+    if @scheduledSequences.length
+      lastSequenceEndTime = @scheduledSequences[0].audioContextEndTime
+    else
+      lastSequenceEndTime = currentTime
+    nudgedLastSequenceEndTime = lastSequenceEndTime - BUFFER_TIME
+    distancePastLastSequence = currentTime - nudgedLastSequenceEndTime
+
+    # Schedule the next sequences ahead of time
+    if !@scheduledSequences.length or distancePastLastSequence >= 0
+      startTime = 0
+      while startTime < (BUFFER_TIME * 2)
+        console.log 'scheduling a sequence'
+        # build a new sequence here so we can adjust the bpm at runtime
+        sequence = @_buildSequence().scheduleAt(lastSequenceEndTime + startTime)
+        #sequence.debug()
+        @scheduledSequences.unshift(sequence)
+        startTime += sequence.timeLength
+
+    #@_debug(distancePastLastSequence)
+
+    @loopIndex++ if LOOP_LENGTH > 0
+
+    # Put execution of this same method on the browser's internal event queue --
+    # it'll get executed when it gets a chance
+    # http://stackoverflow.com/questions/779379/why-is-settimeoutfn-0-sometimes-useful
+    setTimeout('composer.scheduleNextSequences()', 0)
+
+  _debug: (diff) ->
+    seq = @scheduledSequences[@scheduledSequences.length-1]
+    console.log "Current time: #{@audioContext.currentTime}"
+    console.log "Number of sequences: #{@scheduledSequences.length}"
+    if @scheduledSequences.length
+      console.log "First scheduled sequence start time: #{@scheduledSequences[@scheduledSequences.length-1].audioContextStartTime}"
+      console.log "Last scheduled sequence end time: #{@scheduledSequences[0].audioContextEndTime}"
+    console.log "diff: #{diff}"
+    console.log "---"
 
 window.composer = do ->
   c = {}
@@ -213,6 +305,74 @@ window.composer = do ->
       method = if 'stop' in @node then 'stop' else 'noteOff'
       @node[method](time)
 
+  songGenerator =
+    generate: ->
+      @sequences = []
+      @seqLength = 1
+      @timeLength = 4
+
+      d = new Date()
+      loop
+        @generateSequence()
+        break if @seqLength is 16
+        @seqLength *= 2
+        @timeLength /= 2
+      @removeSymmetricalSequences()
+      d2 = new Date()
+      console.log "Time taken: #{d2 - d}"
+
+      return @sequences
+
+    generateSequence: ->
+      # Let's let binary math do the work for us!
+      # Here's kind of how this works:
+      #
+      # 2x1 - 0, 1 (len: 4)
+      # 4x2 - 00, 01, 10, 11 (len: 2)
+      # 8x4 - 0000, 0001 ... 1111 (len: 1)
+      # 16x8 - 00000000, 00000001 ... 11111111 (len: 1/2)
+      # 32x16 - 0000000000000000, 0000000000000001 ... 1111111111111111 (len: 1/4)
+      #
+      allEmpty = (0 for i in [0...@seqLength])
+      allFull = (1 for i in [0...@seqLength])
+      max = parseInt(allFull.join(""), 2)
+      #console.log "@seqLength: #{@seqLength} , allEmpty: #{JSON.stringify(allEmpty)} , allFull: #{JSON.stringify(allFull)} , max: #{max}"
+      for i in [0..max]
+        # generate a zero-padded binary version of i
+        bits = i.toString(2).split('')
+        len = allEmpty.length - bits.length
+        bits = (if len is 0 then [] else allEmpty[0...len]).concat(bits)
+        #console.log "bits:", bits
+        time = 0
+        sequence = []
+        for bit in bits
+          event = {on: bit, time: time, length: @timeLength}
+          #console.log "on: #{bit}, time: #{time}, length: #{@timeLength}"
+          sequence.push(event)
+          time += @timeLength
+        @sequences.push({sequence: sequence, bits: bits.join("")})
+        #console.log "---"
+      #console.log "==="
+
+    removeSymmetricalSequences: ->
+      console.log "# of sequences before: #{@sequences.length}"
+      i = @sequences.length-1
+      while i >= 0
+        bits = @sequences[i].bits
+        mid = (bits.length / 2) - 1
+        # if it's symmetrical down the middle that means that the halfs of the
+        # halfs are also symmetrical
+        if bits[0..mid] is bits[mid+1..-1]
+          @sequences.splice(i, 1)
+        i--
+      console.log "# of sequences after: #{@sequences.length}"
+
+  # This is actually this equation:
+  #
+  # 1/2^(log_2(x)-2)
+  # which is y = 1/2^(x-3) replacing x for log_2(x)+1 which is the inverse of
+  # x = 2^(y-1)
+  #
   DURATION_TO_BEATS =
     1: 4
     2: 2
@@ -233,10 +393,6 @@ window.composer = do ->
 
   extend c,
     init: (patternOrSampleNames, bpm) ->
-      @setBpm(bpm)
-      @tickSize = @beatsToTime(1)
-      @loopIndex = 0
-
       if isPlainObject(patternOrSampleNames)
         @pattern = patternOrSampleNames
         sampleNames = (k for k, v of @pattern)
@@ -247,27 +403,24 @@ window.composer = do ->
       @samplesByName = indexBy(@samples, 'name')
       @samplesByUrl = indexBy(@samples, 'url')
 
+      @sequences = songGenerator.generate()
+
+      throw 'nah'
+
+      @player = new Player(this, @sequences)
+      @player.setBpm(bpm)
+
       @setupAudio =>
         @play() if AUTOPLAY
 
-      $('#play').on 'click', => @play()
-      $('#stop').on 'click', => @stop()
+      $('#controls').addEventListener 'click', => @toggle()
 
       return this
 
-    setBpm: (bpm) ->
-      # 120 bpm is 120 beats / 60 seconds or 0.5 per beat
-      @bpm = bpm
-      @spb = 60 / @bpm
-
-    # Convert some number of beats to time in seconds.
-    #
-    # Example:
-    #
-    #   # assume bpm = 120, so spb = 0.5
-    #   beatsToTime(4)  #=> 2 seconds
-    #
-    beatsToTime: (n) -> n * @spb
+    checkAudioLoaded: ->
+      if not @composer.audioLoaded
+        console.error "Audio isn't loaded yet, can't play!"
+        return
 
     setupAudio: (fn) ->
       @audioContext = new webkitAudioContext()
@@ -287,70 +440,16 @@ window.composer = do ->
         fn?()
 
     play: ->
-      if not @audioLoaded
-        console.error "Audio isn't loaded yet, can't play!"
-        return
-      @isPlaying = true
-      @scheduledSequences = []
-      @scheduleNextSequences()
+      @player.play()
 
     stop: ->
-      @isPlaying = false
+      @player.stop()
 
-    # Here's how times work:
-    #
-    # audioContext.currentTime starts at 0 (when the audioContext was created) and gets
-    # incremented indefinitely. The sequence, on the other hand, will reset to 0
-    # when the sequence repeats. The sequence, then, might look something like
-    # this:
-    #
-    #   audioContext.currentTime: 0 10 20 30 40 50 60 70 80 ...
-    #   sequenceContextStartTime: 0       30       60       ...
-    #   event time:               0 10 20  0 10 20  0 10 20 ...
-    #   event audioContext time:  0 10 20 30 40 50 60 70 80 ...
-    #
-    scheduleNextSequences: ->
-      #console.log 'scheduleNextSequences'
-
-      if not @isPlaying or @loopIndex is LOOP_LENGTH
-        sequence.unschedule() for sequence in @scheduledSequences
-        return
-
-      currentTime = @audioContext.currentTime
-
-      # Remove sequences that have ended
-      i = @scheduledSequences.length-1
-      while i >= 0
-        if currentTime > @scheduledSequences[i].audioContextEndTime
-          @scheduledSequences.splice(i, 1)
-        i--
-
-      if @scheduledSequences.length
-        lastSequenceEndTime = @scheduledSequences[0].audioContextEndTime
+    toggle: ->
+      if @player.isPlaying
+        @play()
       else
-        lastSequenceEndTime = currentTime
-      nudgedLastSequenceEndTime = lastSequenceEndTime - BUFFER_TIME
-      distancePastLastSequence = currentTime - nudgedLastSequenceEndTime
-
-      # Schedule the next sequences ahead of time
-      if !@scheduledSequences.length or distancePastLastSequence >= 0
-        startTime = 0
-        while startTime < (BUFFER_TIME * 2)
-          console.log 'scheduling a sequence'
-          # build a new sequence here so we can adjust the bpm at runtime
-          sequence = @_buildSequence().scheduleAt(lastSequenceEndTime + startTime)
-          #sequence.debug()
-          @scheduledSequences.unshift(sequence)
-          startTime += sequence.timeLength
-
-      #@_debug(distancePastLastSequence)
-
-      @loopIndex++ if LOOP_LENGTH > 0
-
-      # Put execution of this same method on the browser's internal event queue --
-      # it'll get executed when it gets a chance
-      # http://stackoverflow.com/questions/779379/why-is-settimeoutfn-0-sometimes-useful
-      setTimeout('composer.scheduleNextSequences()', 0)
+        @stop()
 
     connectNewSample: (sample) ->
       # We have to create a brand new AudioBufferSourceNode object because once
@@ -365,40 +464,46 @@ window.composer = do ->
       node.connect(@masterNode)
       return node
 
-    _debug: (diff) ->
-      seq = @scheduledSequences[@scheduledSequences.length-1]
-      console.log "Current time: #{@audioContext.currentTime}"
-      console.log "Number of sequences: #{@scheduledSequences.length}"
-      if @scheduledSequences.length
-        console.log "First scheduled sequence start time: #{@scheduledSequences[@scheduledSequences.length-1].audioContextStartTime}"
-        console.log "Last scheduled sequence end time: #{@scheduledSequences[0].audioContextEndTime}"
-      console.log "diff: #{diff}"
-      console.log "---"
+    _buildSequenceFromPattern: (pattern) ->
+      eventObjects = @_buildEventObjectsFromPattern(pattern)
+      sequence = @_buildSequenceFromEventObjects(eventObjects)
+      return sequence
 
-    _buildSequence: ->
-      eventGroupsByTime = {}
-      times = []
-      for sampleName, objs of @pattern
+    _buildEventObjectsFromPattern: (patternsBySampleName) ->
+      eventObjectsBySampleName = {}
+      for sampleName, pattern of patternsBySampleName
         sample = @samplesByName[sampleName]
-        time = 0
-        for obj in objs.split(" ")
-          type = obj[0]
-          dur = obj.substr(1)
-          isNote = switch type
+        eventObjects = eventObjectsBySampleName[sampleName] = []
+        for str in pattern.split(" ")
+          type = str[0]
+          dur = str.substr(1)
+          isOn = switch type
             when 'x' then true
             when 'r' then false
-          length = @beatsToTime(DURATION_TO_BEATS[dur])
-          if isNote
-            event =
-              sample: sample
-              time: time
-              length: length
-            unless eventGroup = eventGroupsByTime[time]
-              eventGroup = new EventGroup(this, time)
-              eventGroupsByTime[time] = eventGroup
-              times.push(time)
+          length = @player.beatsToTime(DURATION_TO_BEATS[dur])
+          event =
+            on: isOn
+            sample: sample
+            time: time
+            length: length
+          eventObjects.push(event)
+      return eventObjectsBySampleName
+
+    _buildSequenceFromEventObjects: (eventObjectsBySampleName) ->
+      eventGroupsByTime = {}
+      times = []
+      for sampleName, events of eventObjectsBySampleName
+        sample = @samplesByName[sampleName]
+        time = 0
+        for event in events
+          if event.on
+            unless eventGroup = eventGroupsByTime[event.time]
+              eventGroup = new EventGroup(this, event.time)
+              eventGroupsByTime[event.time] = eventGroup
+              times.push(event.time)
+            event.sample = sample
             eventGroup.add(event)
-          time += length
+          time += event.length
       times.sort()
       eventGroups = (eventGroupsByTime[time] for time in times)
       new Sequence(this, eventGroups)
