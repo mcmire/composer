@@ -1,12 +1,17 @@
 
+* {
+  -webkit-box-sizing: border-box;
+}
+
 body {
   font-family: Helvetica;
   font-size: 18px;
+  margin: 20px;
 }
 
 #wrapper {
-  width: 600px;
-  margin: 0 auto;
+  /*width: 600px;*/
+  /*margin: 0 auto;*/
   text-align: center;
   letter-spacing: -1px;
   font-size: 30px;
@@ -14,6 +19,59 @@ body {
 
 a {
   color: navy;
+}
+
+#canvas {
+  margin: 0 auto;
+  display: table;
+}
+
+.track {
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+.cell {
+  width: 32px;
+  height: 32px;
+  border: 2px solid silver;
+  cursor: pointer;
+  display: inline-block;
+  margin-right: 8px;
+  position: relative;
+}
+.cell > div {
+  font-size: 24px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: none;
+}
+.cell.on {
+  /*border-color: hsla(200,100%,40%,1);*/
+  /*background-color: hsla(200,100%,50%,1);*/
+  border-color: black;
+  background-color: black;
+}
+
+.cell:hover > div,
+.cell.selected > div {
+  display: block;
+}
+.cell:not(.on).selected {
+  border-color: rgb(0,200,0);
+}
+.cell:not(.on) > div {
+  color: rgb(0,200,0);
+}
+.cell.on.selected {
+  border-color: rgb(255,0,0);
+}
+.cell.on > div {
+  color: rgb(255,0,0);
 }
 
 #actions a {
@@ -24,16 +82,22 @@ a {
   opacity: 0.5;
   -webkit-font-smoothing: antialiased;
 }
-#actions a:hover {
+#actions a.disabled {
+  opacity: 1;
+  color: rgba(255,255,255,0.7);
+  text-shadow: -1px -1px 0px hsl(0,0%,80%);
+}
+#actions a:not(.disabled):hover {
   opacity: 1;
 }
 
-#action-develop {
+#action-next {
   color: #FFB60A;
+  margin-left: 30px;
 }
-#action-accept {
+#action-keep {
   color: #00E02D;
 }
-#action-reject {
+#action-drop {
   color: #FA0000
 }

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <script src="ender.js"></script>
   <script src="composer.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -9,15 +10,13 @@
 <div id="debug"></div>
 
 <div id="wrapper">
-  <p id="steps">Current sequence: <span id="sequence-id"></span></p>
-  <p>
-    <button id="controls">Play</button>
-  </p>
+
+  <div id="canvas"></div>
+
   <p id="actions">
-    <a href="#" id="action-develop" data-action="progress">Develop</a>
-    <a href="#" id="action-accept" data-action="accept">Accept</a>
-    <a href="#" id="action-reject" data-action="reject">Reject</a>
+    <a href="#" id="action-next" data-action="next">Next &rarr;</a>
   </p>
+
 </div>
 
 </body>

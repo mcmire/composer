@@ -9,8 +9,6 @@
 
 "use strict"
 
-$ = -> document.querySelector.apply(document, arguments)
-
 #---
 
 indexBy = (array, key) ->
@@ -58,21 +56,36 @@ loadAudioBuffers = (audioContext, urls, callback) ->
 #---
 
 class Player
-  constructor: (@composer, @sequences) ->
-    @loopIndex = 0
+  constructor: (@composer, opts) ->
+    @scheduledNoteEvents = []
+    @queuedNoteEvents = []
+    @startTime = new Date()
 
-  play: ->
+  add: (noteEventGroups) ->
+    if @isPlaying
+      @schedule(noteEventGroups)
+    else
+      @queue(noteEventGroups)
+
+  schedule: (noteEventGroups) ->
+    for noteEventGroup in noteEventGroups
+      noteEventGroup.schedule()
+      @scheduledNoteEventGroups.push(noteEventGroup)
+
+  queue: (noteEventGroups) ->
+    @queuedNoteEvents.concat(noteEventGroups)
+
+  start: ->
     @composer.checkAudioLoaded()
     @isPlaying = true
-    @scheduledSequences = []
-    @scheduleNextSequences()
+    @_scheduleQueued()
 
   stop: ->
     @isPlaying = false
+    @_unscheduleScheduled()
 
-  setBpm: (bpm) ->
+  setBpm: (@bpm) ->
     # 120 bpm is 120 beats / 60 seconds or 0.5 per beat
-    @bpm = bpm
     @spb = 60 / @bpm
     @tickSize = @beatsToTime(1)
 
@@ -85,333 +98,317 @@ class Player
   #
   beatsToTime: (n) -> n * @spb
 
-  # Here's how times work:
-  #
-  # audioContext.currentTime starts at 0 (when the audioContext was created) and
-  # gets incremented indefinitely. The sequence, on the other hand, will reset
-  # to 0 when the sequence repeats. The sequence, then, might look something
-  # like this:
-  #
-  #   audioContext.currentTime: 0 10 20 30 40 50 60 70 80 ...
-  #   sequenceContextStartTime: 0       30       60       ...
-  #   event time:               0 10 20  0 10 20  0 10 20 ...
-  #   event audioContext time:  0 10 20 30 40 50 60 70 80 ...
-  #
-  scheduleNextSequences: ->
-    #console.log 'scheduleNextSequences'
+  calculateSequenceTimes: (noteEventGroups) ->
+    @timeLength = 0
+    for noteEventGroup in noteEventGroups
+      @timeLength += noteEventGroup.timeLength
+    { timeLength: @timeLength }
 
-    if not @isPlaying or @loopIndex is LOOP_LENGTH
-      sequence.unschedule() for sequence in @scheduledSequences
-      return
+  _scheduleQueued: ->
+    while (noteEventGroup = @queuedNoteEventGroups.shift())
+      noteEventGroup.schedule()
 
-    currentTime = @audioContext.currentTime
+  _unscheduleScheduled: ->
+    while (noteEventGroup = @scheduledNoteGroups.shift())
+      noteEventGroup.unschedule()
 
-    # Remove sequences that have ended
-    i = @scheduledSequences.length-1
-    while i >= 0
-      if currentTime > @scheduledSequences[i].audioContextEndTime
-        @scheduledSequences.splice(i, 1)
-      i--
 
-    if @scheduledSequences.length
-      lastSequenceEndTime = @scheduledSequences[0].audioContextEndTime
+# Two concepts:
+#
+# sequence - The note events which comprise the loop.
+# buffer   - Since the sequence has to be scheduled ahead of time, and to
+#            give us time to schedule the next loop of the sequence, the
+#            sequence is buffered. The buffer is at least equal to the
+#            the buffer time.
+#
+# Three scenarios here:
+#
+# sequence length < buffer time:
+#   .--------- #1 -----------.-------- #2 ---------.
+#   |''``````````*```:```````|````````:````````````|```:
+#   |____________*___:_______|________:____________|___:
+#   0s              1s               2s                3s
+#                ^-- schedule next buffer here
+#   `------------ buffer -------------'
+#   In this case the buffer consists of multiple instances of the sequence,
+#   enough to fill the buffer time. For example, assume the buffer time is 2
+#   seconds. If the sequence length is 1.4 seconds, then the buffer size is
+#   2 sequences for a total of 2.8 seconds. We schedule the next buffer a
+#   little more than midway through the current buffer.
+#
+# sequence length > buffer time:
+#   .------------------ #1 -----------------.------- #2 ----------------
+#   |''``*```````````:````````````````:`````|``````````:
+#   |____*___________:________________:_____|__________:
+#   0s              1s               2s                3s
+#   `------------ buffer -------------'
+#        ^--- schedule next buffer here
+#   In this case we just schedule the next buffer at this buffer's end time
+#   less the buffer length, subtracting the current time from this timestamp
+#   to get a relative time.
+#
+# sequence length == buffer length:
+#   .-------------- #1 ---------------.------- #2 ----------------
+#   *''``````````````:````````````````|````````````````:
+#   *________________:________________|________________:
+#   0s              1s               2s                3s
+#   ^--- schedule next buffer here??
+#   `------------ buffer -------------'
+#   In this case we need to just schedule 2 buffers at time 0.
+#
+class Looper
+  # This is basically the negative amount of time from the end of this
+  # sequence that the next sequence will be scheduled. It also governs how
+  # many sequences are scheduled (schedule as many sequences that add up to
+  # this buffer time).
+  BUFFER_TIME = 2  # seconds
+  BUFFER_TIME_MS = BUFFER_TIME * 1000
+
+  initialize: (@sequence) ->
+    @player = new Player
+
+  setBpm: (bpm) ->
+    @player.setBpm()
+    @_stopTimer()
+    @_startTimer()
+
+  start: ->
+    @isRunning = true
+    @scheduledNoteEventGroups = []
+    @_startTimer()
+
+  _startTimer: ->
+    $.v.extend @sequence, @player.calculateSequenceTimes(@sequence)
+    @_calculateTimes()
+    @_scheduleNoteEventGroups()
+    fn = =>
+      @timer = setInterval (=> @_scheduleNoteEventGroups()), BUFFER_TIME_MS
+    if BUFFER_TIME == @sequence.timeLength
+      @_scheduleNextNoteEventGroups()
+      fn()
     else
-      lastSequenceEndTime = currentTime
-    nudgedLastSequenceEndTime = lastSequenceEndTime - BUFFER_TIME
-    distancePastLastSequence = currentTime - nudgedLastSequenceEndTime
+      lastNoteEventGroup = @scheduledNoteEventGroups[@scheduledNoteEventGroups.length-1]
+      currentTime = (new Date()).getTime()
+      timeToWait = lastNoteEventGroup.endTime - BUFFER_TIME_MS - currentTime
+      setTimeout(fn, timeToWait)
 
-    # Schedule the next sequences ahead of time
-    if !@scheduledSequences.length or distancePastLastSequence >= 0
-      startTime = 0
-      while startTime < (BUFFER_TIME * 2)
-        console.log 'scheduling a sequence'
-        # build a new sequence here so we can adjust the bpm at runtime
-        sequence = @_buildSequence().scheduleAt(lastSequenceEndTime + startTime)
-        #sequence.debug()
-        @scheduledSequences.unshift(sequence)
-        startTime += sequence.timeLength
+  _scheduleNoteEventGroups: ->
+    if not @isRunning
+      @_unscheduleNoteEventGroups()
+      return
+    @_removeFinishedNoteEventGroups()
+    @player.schedule(@sequence)
 
-    #@_debug(distancePastLastSequence)
+  _unscheduleScheduledNoteEventGroups: ->
+    for noteEventGroups in @scheduledNoteEventGroups
+      noteEventGroup.unschedule()
 
-    @loopIndex++ if LOOP_LENGTH > 0
-
-    # Put execution of this same method on the browser's internal event queue --
-    # it'll get executed when it gets a chance
-    # http://stackoverflow.com/questions/779379/why-is-settimeoutfn-0-sometimes-useful
-    setTimeout('composer.scheduleNextSequences()', 0)
+  _removeFinishedNoteEventGroups: ->
+    currentTime = @audioContext.currentTime
+    i = 0
+    loop
+      break if @scheduledNoteEventGroups[i].audioContextStartTime >= currentTime
+      i++
+    if i > 0
+      @scheduledNoteEventGroups = @scheduledNoteEventGroups[i..-1]
 
   _debug: (diff) ->
-    seq = @scheduledSequences[@scheduledSequences.length-1]
+    seq = @scheduledNoteEventGroups[@scheduledNoteEventGroups.length-1]
     console.log "Current time: #{@audioContext.currentTime}"
-    console.log "Number of sequences: #{@scheduledSequences.length}"
-    if @scheduledSequences.length
-      console.log "First scheduled sequence start time: #{@scheduledSequences[@scheduledSequences.length-1].audioContextStartTime}"
-      console.log "Last scheduled sequence end time: #{@scheduledSequences[0].audioContextEndTime}"
+    console.log "Number of sequences: #{@scheduledNoteEventGroups.length}"
+    if @scheduledNoteEventGroups.length
+      console.log "First scheduled sequence start time: #{@scheduledNoteEventGroups[@scheduledNoteEventGroups.length-1].audioContextStartTime}"
+      console.log "Last scheduled sequence end time: #{@scheduledNoteEventGroups[0].audioContextEndTime}"
     console.log "diff: #{diff}"
     console.log "---"
 
-window.composer = do ->
-  c = {}
+#---
 
-  # A Sequence represents a pattern of note events (actually EventGroups) that
-  # may be repeated over and over.
+# A Sequence represents a pattern of note events (actually NoteEventGroups) that
+# may be repeated over and over.
+#
+# Properties:
+#
+# composer              - The composer POJO.
+# audioContext          - The AudioContext object that manages audio.
+# eventGroups           - The Array of NoteEventGroup objects in the sequence,
+#                         in order of increasing time.
+# audioContextStartTime - The Float time that this sequence starts, in number
+#                         of seconds since the audio context was created.
+# audioContextEndTime   - The Float time that this sequence ends, in number
+#                         seconds since the audio context was created.
+# timeLength            - The Float number of seconds that this sequence
+#                         lasts.
+#
+class Sequence
+  constructor: (@composer, eventGroups=[]) ->
+    @audioContext = @composer.audioContext
+    @eventGroups = []
+    @add(eventGroup) for eventGroup in eventGroups
+
+  clone: ->
+    eventGroups = (eventGroup.clone() for eventGroup in @eventGroups)
+    new Sequence(@composer, eventGroups)
+
+  add: (eventGroup) ->
+    eventGroup.sequence = this
+    @eventGroups.push(eventGroup)
+
+  scheduledAt: (startTime) ->
+    @clone().scheduleAt(startTime)
+
+  scheduleAt: (startTime) ->
+    @startAt(startTime)
+    @schedule()
+    return this
+
+  schedule: ->
+    eventGroup.scheduleAll() for eventGroup in @eventGroups
+
+  unschedule: ->
+    eventGroup.unscheduleAll() for eventGroup in @eventGroups
+
+  startAt: (audioContextTime) ->
+    # XXX: times needs to be relative until events are scheduled?
+    for eventGroup in @eventGroups
+      eventGroup.audioContextStartTime = audioContextTime + eventGroup.time
+      eventGroup.audioContextEndTime = eventGroup.audioContextStartTime + eventGroup.timeLength
+    @audioContextStartTime = @eventGroups[0].audioContextStartTime
+    @audioContextEndTime   = @eventGroups[@eventGroups.length-1].audioContextEndTime
+    @timeLength            = @audioContextEndTime - @audioContextStartTime
+
+  debug: ->
+    for eventGroup, i in @eventGroups
+      console.log "NoteEvent ##{i}: time=#{eventGroup.time} acst=#{eventGroup.audioContextStartTime} timeLength=#{eventGroup.timeLength}"
+      for event in eventGroup.events
+        console.log "- #{event.sample.name}: time=#{event.time} len=#{event.length}"
+
+# An NoteEventGroup is a collection of events in a known sequence of events that
+# share the same time.
+#
+# Properties:
+#
+# sequence   - The Sequence that this NoteEventGroup belongs to.
+# composer   - The composer POJO.
+# time       - The Integer time that events in this group should be scheduled;
+#              the number of seconds since the first event group in the
+#              sequence.
+# events     - An Array of POJO: the events in this group. Each object should
+#              have three properties: 'sample', 'time', and 'length'. See
+#              the definition of NoteEvent for what these are.
+# timeLength - The Integer number of seconds of the longest event in this
+#              event group.
+#
+class NoteEventGroup
+  constructor: (@parent, @time, events=[]) ->
+    @timeLength = 0
+    @events = []
+    @add(event) for event in events
+
+  getAudioContextStartTime: ->
+    @parent.audioContextStartTime
+
+  clone: ->
+    events = (event.clone() for event in @events)
+    eventGroup = new NoteEventGroup(@composer, @time, events)
+
+  add: (event) ->
+    unless event instanceof NoteEvent
+      event = new NoteEvent(this,
+        event.sample,
+        event.time,
+        event.length
+      )
+    event.eventGroup = this
+    @events.push(event)
+    @timeLength = event.length if event.length > @timeLength
+
+  # Schedule all of the events in this event group.
   #
-  # Properties:
+  schedule: ->
+    event.schedule() for event in @events
+
+  # Prevent all of the events in this event group from generating sound.
   #
-  # composer              - The composer POJO.
-  # audioContext          - The AudioContext object that manages audio.
-  # eventGroups           - The Array of EventGroup objects in the sequence,
-  #                         in order of increasing time.
-  # audioContextStartTime - The Float time that this sequence starts, in number
-  #                         of seconds since the audio context was created.
-  # audioContextEndTime   - The Float time that this sequence ends, in number
-  #                         seconds since the audio context was created.
-  # timeLength            - The Float number of seconds that this sequence
-  #                         lasts.
-  #
-  class Sequence
-    constructor: (@composer, eventGroups=[]) ->
-      @audioContext = @composer.audioContext
-      @eventGroups = []
-      @add(eventGroup) for eventGroup in eventGroups
+  unschedule: ->
+    event.unschedule() for event in @events
 
-    clone: ->
-      eventGroups = (eventGroup.clone() for eventGroup in @eventGroups)
-      new Sequence(@composer, eventGroups)
+# An NoteEvent represents a note (technically, a sample) that turns on or off at
+# a specific time.
+#
+# Properties:
+#
+# eventGroup   - The NoteEventGroup where this NoteEvent belongs.
+# composer     - The composer POJO.
+# audioContext - The AudioContext object that manages audio.
+# sample       - A POJO that represents a waveform. It has a 'source' property
+#                which is a AudioBufferSourceNode object within the W3C Web
+#                Audio API.
+# time         - The Float time in seconds since the sequence started;
+#                the event will be executed when this time is reached.
+# length       - The Float length in seconds of this event.
+#
+class NoteEvent
+  constructor: (@eventGroup, @sample, @time, @length) ->
+    @composer = @eventGroup.composer
+    @audioContext = @composer.audioContext
 
-    add: (eventGroup) ->
-      eventGroup.sequence = this
-      @eventGroups.push(eventGroup)
+  clone: ->
+    new NoteEvent(@eventGroup, @sample, @time, @length)
 
-    scheduledAt: (startTime) ->
-      @clone().scheduleAt(startTime)
+  schedule: ->
+    # XXX: time needs to be relative until we get to this point?
+    ctxTime = @eventGroup.getAudioContextStartTime() + @time
+    @node = @composer.connectNewSample(@sample)
+    console.log "scheduling #{@sample.name} at #{ctxTime}"
+    @_start(ctxTime)
+    @_stop(ctxTime + @length)
 
-    scheduleAt: (startTime) ->
-      @startAt(startTime)
-      @schedule()
-      return this
+  unschedule: ->
+    # node.playbackState isnt 2  # i.e. playing
+    # XXX: will this work if the node is unscheduled?
+    @_stop(0) if @node  # immediately
 
-    schedule: ->
-      eventGroup.scheduleAll() for eventGroup in @eventGroups
+  _start: (time) ->
+    # deal with recent changes to the Web Audio API
+    method = if 'start' in @node then 'start' else 'noteOn'
+    @node[method](time)
 
-    unschedule: ->
-      eventGroup.unscheduleAll() for eventGroup in @eventGroups
+  _stop: (time) ->
+    # deal with recent changes to the Web Audio API
+    method = if 'stop' in @node then 'stop' else 'noteOff'
+    @node[method](time)
 
-    startAt: (audioContextTime) ->
-      # XXX: times needs to be relative until events are scheduled?
-      for eventGroup in @eventGroups
-        eventGroup.audioContextStartTime = audioContextTime + eventGroup.time
-        eventGroup.audioContextEndTime = eventGroup.audioContextStartTime + eventGroup.timeLength
-      @audioContextStartTime = @eventGroups[0].audioContextStartTime
-      @audioContextEndTime   = @eventGroups[@eventGroups.length-1].audioContextEndTime
-      @timeLength            = @audioContextEndTime - @audioContextStartTime
+  window.composer = do ->
+    SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare']
 
-    debug: ->
-      for eventGroup, i in @eventGroups
-        console.log "Event ##{i}: time=#{eventGroup.time} acst=#{eventGroup.audioContextStartTime} timeLength=#{eventGroup.timeLength}"
-        for event in eventGroup.events
-          console.log "- #{event.sample.name}: time=#{event.time} len=#{event.length}"
-
-  # An EventGroup is a collection of events in a known sequence of events that
-  # share the same time.
-  #
-  # Properties:
-  #
-  # sequence   - The Sequence that this EventGroup belongs to.
-  # composer   - The composer POJO.
-  # time       - The Integer time that events in this group should be scheduled;
-  #              the number of seconds since the first event group in the
-  #              sequence.
-  # events     - An Array of POJO: the events in this group. Each object should
-  #              have three properties: 'sample', 'time', and 'length'. See
-  #              the definition of Event for what these are.
-  # timeLength - The Integer number of seconds of the longest event in this
-  #              event group.
-  #
-  class EventGroup
-    constructor: (@composer, @time, events=[]) ->
-      @timeLength = 0
-      @events = []
-      @add(event) for event in events
-
-    clone: ->
-      events = (event.clone() for event in @events)
-      eventGroup = new EventGroup(@composer, @time, events)
-
-    add: (event) ->
-      unless event instanceof Event
-        event = new Event(this,
-          event.sample,
-          event.time,
-          event.length
-        )
-      event.eventGroup = this
-      @events.push(event)
-      @timeLength = event.length if event.length > @timeLength
-
-    # Schedule all of the events in this event group.
+    # This is actually this equation:
     #
-    scheduleAll: ->
-      event.schedule() for event in @events
-
-    # Prevent all of the events in this event group from generating sound.
+    # 1/2^(log_2(x)-2)
+    # which is y = 1/2^(x-3) replacing x for log_2(x)+1 which is the inverse of
+    # x = 2^(y-1)
     #
-    unscheduleAll: ->
-      event.unschedule() for event in @events
+    DURATION_TO_BEATS =
+      1: 4
+      2: 2
+      4: 1
+      8: 0.5
+      16: 0.25
 
-  # An Event represents a note (technically, a sample) that turns on or off at a
-  # specific time.
-  #
-  # Properties:
-  #
-  # eventGroup   - The EventGroup where this Event belongs.
-  # composer     - The composer POJO.
-  # audioContext - The AudioContext object that manages audio.
-  # sample       - A POJO that represents a waveform. It has a 'source' property
-  #                which is a AudioBufferSourceNode object within the W3C Web
-  #                Audio API.
-  # time         - The Float time in seconds since the sequence started;
-  #                the event will be executed when this time is reached.
-  # length       - The Float length in seconds of this event.
-  #
-  class Event
-    constructor: (@eventGroup, @sample, @time, @length) ->
-      @composer = @eventGroup.composer
-      @audioContext = @composer.audioContext
+    init: (@bpm, opts) ->
+      @autoplay = opts.autoplay
 
-    clone: ->
-      new Event(@eventGroup, @sample, @time, @length)
-
-    schedule: ->
-      # XXX: time needs to be relative until we get to this point?
-      ctxTime = @eventGroup.sequence.audioContextStartTime + @time
-      @node = @composer.connectNewSample(@sample)
-      console.log "scheduling #{@sample.name} at #{ctxTime}"
-      @_start(ctxTime)
-      @_stop(ctxTime + @length)
-
-    unschedule: ->
-      # node.playbackState isnt 2  # i.e. playing
-      # XXX: will this work if the node is unscheduled?
-      @_stop(0) if @node  # immediately
-
-    _start: (time) ->
-      # deal with recent changes to the Web Audio API
-      method = if 'start' in @node then 'start' else 'noteOn'
-      @node[method](time)
-
-    _stop: (time) ->
-      # deal with recent changes to the Web Audio API
-      method = if 'stop' in @node then 'stop' else 'noteOff'
-      @node[method](time)
-
-  songGenerator =
-    generate: ->
-      @sequences = []
-      @seqLength = 1
-      @timeLength = 4
-
-      d = new Date()
-      loop
-        @generateSequence()
-        break if @seqLength is 16
-        @seqLength *= 2
-        @timeLength /= 2
-      @removeSymmetricalSequences()
-      d2 = new Date()
-      console.log "Time taken: #{d2 - d}"
-
-      return @sequences
-
-    generateSequence: ->
-      # Let's let binary math do the work for us!
-      # Here's kind of how this works:
-      #
-      # 2x1 - 0, 1 (len: 4)
-      # 4x2 - 00, 01, 10, 11 (len: 2)
-      # 8x4 - 0000, 0001 ... 1111 (len: 1)
-      # 16x8 - 00000000, 00000001 ... 11111111 (len: 1/2)
-      # 32x16 - 0000000000000000, 0000000000000001 ... 1111111111111111 (len: 1/4)
-      #
-      allEmpty = (0 for i in [0...@seqLength])
-      allFull = (1 for i in [0...@seqLength])
-      max = parseInt(allFull.join(""), 2)
-      #console.log "@seqLength: #{@seqLength} , allEmpty: #{JSON.stringify(allEmpty)} , allFull: #{JSON.stringify(allFull)} , max: #{max}"
-      for i in [0..max]
-        # generate a zero-padded binary version of i
-        bits = i.toString(2).split('')
-        len = allEmpty.length - bits.length
-        bits = (if len is 0 then [] else allEmpty[0...len]).concat(bits)
-        #console.log "bits:", bits
-        time = 0
-        sequence = []
-        for bit in bits
-          event = {on: bit, time: time, length: @timeLength}
-          #console.log "on: #{bit}, time: #{time}, length: #{@timeLength}"
-          sequence.push(event)
-          time += @timeLength
-        @sequences.push({sequence: sequence, bits: bits.join("")})
-        #console.log "---"
-      #console.log "==="
-
-    removeSymmetricalSequences: ->
-      console.log "# of sequences before: #{@sequences.length}"
-      i = @sequences.length-1
-      while i >= 0
-        bits = @sequences[i].bits
-        mid = (bits.length / 2) - 1
-        # if it's symmetrical down the middle that means that the halfs of the
-        # halfs are also symmetrical
-        if bits[0..mid] is bits[mid+1..-1]
-          @sequences.splice(i, 1)
-        i--
-      console.log "# of sequences after: #{@sequences.length}"
-
-  # This is actually this equation:
-  #
-  # 1/2^(log_2(x)-2)
-  # which is y = 1/2^(x-3) replacing x for log_2(x)+1 which is the inverse of
-  # x = 2^(y-1)
-  #
-  DURATION_TO_BEATS =
-    1: 4
-    2: 2
-    4: 1
-    8: 0.5
-    16: 0.25
-
-  # This is basically the negative amount of time from the end of this sequence
-  # that the next sequence will be scheduled. It also governs how many sequences
-  # are scheduled (schedule as many sequences that add up to this buffer time).
-  BUFFER_TIME = 4  # seconds
-
-  # How many times to loop
-  LOOP_LENGTH = -1
-
-  # Whether to play as soon as the page loads
-  AUTOPLAY = false
-
-  extend c,
-    init: (patternOrSampleNames, bpm) ->
-      if isPlainObject(patternOrSampleNames)
-        @pattern = patternOrSampleNames
-        sampleNames = (k for k, v of @pattern)
-      else
-        sampleNames = patternOrSampleNames
-
-      @samples = ({name: name, url: "samples/#{name}.wav"} for name in sampleNames)
+      @samples = ({name: name, url: "samples/#{name}.wav"} for name in SAMPLE_NAMES)
       @samplesByName = indexBy(@samples, 'name')
       @samplesByUrl = indexBy(@samples, 'url')
 
       @sequences = songGenerator.generate()
 
-      throw 'nah'
-
       @player = new Player(this, @sequences)
-      @player.setBpm(bpm)
+      @player.setBpm(@bpm)
 
       @setupAudio =>
-        @play() if AUTOPLAY
+        @play() if @autoplay
 
       $('#controls').addEventListener 'click', => @toggle()
 
@@ -423,6 +420,8 @@ window.composer = do ->
         return
 
     setupAudio: (fn) ->
+      # This is the AudioContext - everything points back here
+      # audioContext.currentTime starts at 0 and increments indefinitely
       @audioContext = new webkitAudioContext()
       # Have to connect something to the audio audioContext in order to make
       # currentTime increment along with system time, otherwise it will remain
@@ -498,7 +497,7 @@ window.composer = do ->
         for event in events
           if event.on
             unless eventGroup = eventGroupsByTime[event.time]
-              eventGroup = new EventGroup(this, event.time)
+              eventGroup = new NoteEventGroup(this, event.time)
               eventGroupsByTime[event.time] = eventGroup
               times.push(event.time)
             event.sample = sample
@@ -510,13 +509,23 @@ window.composer = do ->
 
 #---
 
-window.addEventListener 'load', ->
-  pattern = {
-    'hic':   'x8 r8 x8 x8 x8 r8 x8 x8'
-    'hio':   'r8 x8 r8 r8 r8 x8 r8 r8'
-    'kick':  'x16 x16 r8 r8 r16 x8 x16 x8 r16 x8 x16'
-    'snare': 'r4 x4 r4 x4'
-  }
-  bpm = 60
-  composer.init(pattern, bpm)
+$(window).on 'load', ->
+  $canvas = $('#canvas')
+  for [0...2]
+    $track = $('<div class="track">')
+    for i in [0...16]
+      $cell = $('<div class="cell"><div></div></div>')
+      $cell.addClass('on') if Math.round(Math.random()) == 0
+      $cell.addClass('last') if i is 15
+      $track.append($cell)
+    $canvas.append($track)
+  $canvas.find('.cell:not(.on) > div').append("✓")
+  $canvas.find('.cell.on > div').append("✗")
+  $canvas
+    .on('click',     '.cell', -> $(this).toggleClass('selected'))
+    .on('mousedown', '.cell', -> $(this).addClass('mousedown'))
+    .on('mouseup',   '.cell', -> $(this).addClass('over'))
+    .on('mouseup',            -> $('.cell', this).removeClass('mousedown'))
+    .on('mouseout',  '.cell', -> $(this).removeClass('over'))
+  #composer.init(60)
 
