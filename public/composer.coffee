@@ -56,10 +56,31 @@ loadAudioBuffers = (audioContext, urls, callback) ->
 #---
 
 class Player
+  SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare']
+
+  # This is actually this equation:
+  #
+  # 1/2^(log_2(x)-2)
+  # which is y = 1/2^(x-3) replacing x for log_2(x)+1 which is the inverse of
+  # x = 2^(y-1)
+  #
+  DURATION_TO_BEATS =
+    1: 4
+    2: 2
+    4: 1
+    8: 0.5
+    16: 0.25
+
   constructor: (@composer, opts) ->
+    @samples = ({name: name, url: "samples/#{name}.wav"} for name in SAMPLE_NAMES)
+    @samplesByName = indexBy(@samples, 'name')
+    @samplesByUrl = indexBy(@samples, 'url')
+
     @scheduledNoteEvents = []
     @queuedNoteEvents = []
     @startTime = new Date()
+
+    @_setupAudio => @play() if @autoplay
 
   add: (noteEventGroups) ->
     if @isPlaying
@@ -84,25 +105,48 @@ class Player
     @isPlaying = false
     @_unscheduleScheduled()
 
-  setBpm: (@bpm) ->
-    # 120 bpm is 120 beats / 60 seconds or 0.5 per beat
-    @spb = 60 / @bpm
-    @tickSize = @beatsToTime(1)
-
-  # Convert some number of beats to time in seconds.
-  #
-  # Example:
-  #
-  #   # assume bpm = 120, so spb = 0.5
-  #   beatsToTime(4)  #=> 2 seconds
-  #
-  beatsToTime: (n) -> n * @spb
-
   calculateSequenceTimes: (noteEventGroups) ->
     @timeLength = 0
     for noteEventGroup in noteEventGroups
       @timeLength += noteEventGroup.timeLength
     { timeLength: @timeLength }
+
+  connectNewSample: (sample) ->
+    # We have to create a brand new AudioBufferSourceNode object because once
+    # it plays once, we can't replay it. From the spec:
+    #
+    # > Once an AudioBufferSourceNode has reached the FINISHED state it will
+    # > no longer emit any sound. Thus start() and stop() may not be issued
+    # > multiple times for a given AudioBufferSourceNode.
+    #
+    node = @audioContext.createBufferSource()
+    node.buffer = sample.buffer
+    node.connect(@masterNode)
+    return node
+
+  _checkAudioLoaded: ->
+    if not @composer.audioLoaded
+      console.error "Audio isn't loaded yet, can't play!"
+      return
+
+  _setupAudio: (fn) ->
+    # This is the AudioContext - everything points back here
+    # audioContext.currentTime starts at 0 and increments indefinitely
+    @audioContext = new webkitAudioContext()
+    # Have to connect something to the audio audioContext in order to make
+    # currentTime increment along with system time, otherwise it will remain
+    # at 0 until the first note node is connected. (Unfortunately, this
+    # doesn't seem to be documented in the spec anywhere.)
+    @masterNode = @audioContext.createGainNode()
+    @masterNode.connect(@audioContext.destination)
+
+    sampleUrls = (s.url for s in @samples)
+    loadAudioBuffers @audioContext, sampleUrls, (buffers) =>
+      for buffer in buffers
+        sample = @samplesByUrl[buffer.url]
+        sample.buffer = buffer.buffer
+      @audioLoaded = true
+      fn?()
 
   _scheduleQueued: ->
     while (noteEventGroup = @queuedNoteEventGroups.shift())
@@ -379,153 +423,229 @@ class NoteEvent
     method = if 'stop' in @node then 'stop' else 'noteOff'
     @node[method](time)
 
-  window.composer = do ->
-    SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare']
+#---
 
-    # This is actually this equation:
-    #
-    # 1/2^(log_2(x)-2)
-    # which is y = 1/2^(x-3) replacing x for log_2(x)+1 which is the inverse of
-    # x = 2^(y-1)
-    #
-    DURATION_TO_BEATS =
-      1: 4
-      2: 2
-      4: 1
-      8: 0.5
-      16: 0.25
+cursor = do ->
+  getStyle = document.defaultView.getComputedStyle
+  elem =
+    numberOfBeats = startTime = finishTime = finishDistance =
+    render = timer = null
+  isRunning = false
 
-    init: (@bpm, opts) ->
-      @autoplay = opts.autoplay
+  set = (val) ->
+    elem.style.left = val + 'px'
 
-      @samples = ({name: name, url: "samples/#{name}.wav"} for name in SAMPLE_NAMES)
-      @samplesByName = indexBy(@samples, 'name')
-      @samplesByUrl = indexBy(@samples, 'url')
+  init: (@canvas) ->
+    @composer = @canvas.getComposer()
+    @$elem = $('#cursor')
+    elem = @$elem[0]
+    numberOfBeats = @composer.getNumberOfBeats()
+    finishDistance = @canvas.getBeatPosition('last')
+    return this
 
-      @sequences = songGenerator.generate()
-
-      @player = new Player(this, @sequences)
-      @player.setBpm(@bpm)
-
-      @setupAudio =>
-        @play() if @autoplay
-
-      $('#controls').addEventListener 'click', => @toggle()
-
-      return this
-
-    checkAudioLoaded: ->
-      if not @composer.audioLoaded
-        console.error "Audio isn't loaded yet, can't play!"
+  setBpm: (bpm) ->
+    finishTime = (60 / bpm) * numberOfBeats * 1000
+    startTime = (new Date()).getTime()
+    render = =>
+      return if not isRunning
+      # map time to pixels
+      # not a 1-to-1, pixels < time so some frames will be no movement
+      # at the same time cannot assume time-pixel synchronicity so if we have
+      #  fallen behind we need to catch up
+      # so, how many pixels do we need to move to catch up?
+      now = (new Date()).getTime()
+      # map pct time to pct pixels
+      timeSoFar = now - startTime
+      if timeSoFar >= finishTime
+        @setToEnd()
         return
-
-    setupAudio: (fn) ->
-      # This is the AudioContext - everything points back here
-      # audioContext.currentTime starts at 0 and increments indefinitely
-      @audioContext = new webkitAudioContext()
-      # Have to connect something to the audio audioContext in order to make
-      # currentTime increment along with system time, otherwise it will remain
-      # at 0 until the first note node is connected. (Unfortunately, this
-      # doesn't seem to be documented in the spec anywhere.)
-      @masterNode = @audioContext.createGainNode()
-      @masterNode.connect(@audioContext.destination)
-
-      sampleUrls = (s.url for s in @samples)
-      loadAudioBuffers @audioContext, sampleUrls, (buffers) =>
-        for buffer in buffers
-          sample = @samplesByUrl[buffer.url]
-          sample.buffer = buffer.buffer
-        @audioLoaded = true
-        fn?()
-
-    play: ->
-      @player.play()
-
-    stop: ->
-      @player.stop()
-
-    toggle: ->
-      if @player.isPlaying
-        @play()
+      changeInDistance = Math.floor((timeSoFar / finishTime) * finishDistance)
+      currentDistance = getStyle(elem).left
+      currentDistance = if currentDistance? then parseInt(currentDistance, 10) else 0
+      distanceSoFar = currentDistance + changeInDistance
+      console.log(
+        bpm: bpm
+        numberOfBeats: numberOfBeats
+        finishTime: finishTime
+        startTime: startTime
+        timeSoFar: timeSoFar
+        currentDistance: currentDistance
+        changeInDistance: changeInDistance
+        finishDistance: finishDistance
+        distanceSoFar: distanceSoFar
+      )
+      if distanceSoFar >= finishDistance
+        @setToEnd()
+        return
       else
-        @stop()
+        set(distanceSoFar)
+        #timer = window.webkitRequestAnimationFrame(render)
 
-    connectNewSample: (sample) ->
-      # We have to create a brand new AudioBufferSourceNode object because once
-      # it plays once, we can't replay it. From the spec:
-      #
-      # > Once an AudioBufferSourceNode has reached the FINISHED state it will
-      # > no longer emit any sound. Thus start() and stop() may not be issued
-      # > multiple times for a given AudioBufferSourceNode.
-      #
-      node = @audioContext.createBufferSource()
-      node.buffer = sample.buffer
-      node.connect(@masterNode)
-      return node
+  isRunning: -> isRunning
 
-    _buildSequenceFromPattern: (pattern) ->
-      eventObjects = @_buildEventObjectsFromPattern(pattern)
-      sequence = @_buildSequenceFromEventObjects(eventObjects)
-      return sequence
+  start: ->
+    isRunning = true
+    timer = window.webkitRequestAnimationFrame(render)
 
-    _buildEventObjectsFromPattern: (patternsBySampleName) ->
-      eventObjectsBySampleName = {}
-      for sampleName, pattern of patternsBySampleName
-        sample = @samplesByName[sampleName]
-        eventObjects = eventObjectsBySampleName[sampleName] = []
-        for str in pattern.split(" ")
-          type = str[0]
-          dur = str.substr(1)
-          isOn = switch type
-            when 'x' then true
-            when 'r' then false
-          length = @player.beatsToTime(DURATION_TO_BEATS[dur])
-          event =
-            on: isOn
-            sample: sample
-            time: time
-            length: length
-          eventObjects.push(event)
-      return eventObjectsBySampleName
+  stop: ->
+    isRunning = false
+    window.webkitCancelRequestAnimationFrame(timer)
+    @setToStart()
 
-    _buildSequenceFromEventObjects: (eventObjectsBySampleName) ->
-      eventGroupsByTime = {}
-      times = []
-      for sampleName, events of eventObjectsBySampleName
-        sample = @samplesByName[sampleName]
-        time = 0
-        for event in events
-          if event.on
-            unless eventGroup = eventGroupsByTime[event.time]
-              eventGroup = new NoteEventGroup(this, event.time)
-              eventGroupsByTime[event.time] = eventGroup
-              times.push(event.time)
-            event.sample = sample
-            eventGroup.add(event)
-          time += event.length
-      times.sort()
-      eventGroups = (eventGroupsByTime[time] for time in times)
-      new Sequence(this, eventGroups)
+  setToBeat: (number) ->
+    set(@canvas.getBeatPosition(number))
+
+  setToStart: ->
+    set(0)
+
+  setToEnd: ->
+    set(finishDistance)
+
+#---
+
+canvas = do ->
+  CELL_SIZE = 32  # pixels
+  CELL_PADDING = 8  # pixels
+  NUMBER_OF_TRACKS = 2
+
+  init: (@composer) ->
+    @numberOfBeats = @composer.getNumberOfBeats()
+    @$elem = $('#canvas')
+      .css(width: (CELL_SIZE + CELL_PADDING) * @numberOfBeats)
+    @$board  = $('#board')
+    @cursor = cursor.init(this)
+    @_populateBoard()
+    @_addEvents()
+    return this
+
+  getComposer: -> @composer
+  getCellSize: -> CELL_SIZE
+  getCellPadding: -> CELL_PADDING
+  getNumberOfTracks: -> NUMBER_OF_TRACKS
+  getCursor: -> @cursor
+
+  getBeatPosition: (index) ->
+    index = @numberOfBeats if index is 'last'
+    pos = (CELL_SIZE + CELL_PADDING) * (index - 1)
+    if index == @numberOfBeats
+      pos += CELL_SIZE
+    else
+      pos += CELL_SIZE + CELL_PADDING
+    return pos
+
+  _populateBoard: ->
+    for [0...NUMBER_OF_TRACKS]
+      $track = $('<div class="track">')
+      $track.css(
+        height: CELL_SIZE
+        'margin-bottom': CELL_PADDING
+      )
+      for i in [0...@numberOfBeats]
+        $cell = $('<div class="cell"><div></div></div>')
+        $cell.css(
+          width: CELL_SIZE
+          height: CELL_SIZE
+          'margin-right': CELL_PADDING
+        )
+        $cell.addClass('on') if Math.round(Math.random()) == 0
+        $cell.addClass('last') if i is 15
+        $track.append($cell)
+      @$board.append($track)
+    @$board.find('.cell:not(.on) > div').append("✓")
+    @$board.find('.cell.on > div').append("✗")
+
+  _addEvents: ->
+    @$board
+      .on('click',     '.cell', -> $(this).toggleClass('selected'))
+      .on('mousedown', '.cell', -> $(this).addClass('mousedown'))
+      .on('mouseup',   '.cell', -> $(this).addClass('over'))
+      .on('mouseup',            -> $('.cell', this).removeClass('mousedown'))
+      .on('mouseout',  '.cell', -> $(this).removeClass('over'))
+
+#---
+
+window.composer = do ->
+  NUMBER_OF_BEATS = 16
+
+  init: (bpm, opts) ->
+    #@player = new Player(this, @sequences, autoplay: opts.autoplay)
+    @canvas = canvas.init(this)
+    @cursor = @canvas.getCursor()
+    #$('#controls').addEventListener 'click', => @toggle()
+    @setBpm(bpm)
+    @isRunning = false
+    @currentBeat = 0
+    @_addEvents()
+    return this
+
+  getNumberOfBeats: -> NUMBER_OF_BEATS
+
+  setBpm: (@bpm) ->
+    # 120 bpm is 120 beats / 60 seconds or 0.5 per beat
+    @spb = 60 / @bpm
+    #@tickSize = @beatsToTime(1)
+    @cursor.setBpm(bpm)
+
+  # Convert some number of beats to time in seconds.
+  #
+  # Example:
+  #
+  #   # assume bpm = 120, so spb = 0.5
+  #   beatsToTime(4)  #=> 2 seconds
+  #
+  beatsToTime: (n) -> n * @spb
+
+  start: ->
+    @isRunning = true
+    #@player.start()
+    @cursor.start()
+
+  stop: ->
+    @isRunning = false
+    #@player.stop()
+    @cursor.stop()
+
+  toggle: ->
+    if @isRunning then @stop() else @start()
+
+  setToBeat: (number) ->
+    #@player.setToBeat(number)
+    @cursor.setToBeat(number)
+
+  nextBeat: (number) ->
+    @currentBeat = (@currentBeat + 1) % (NUMBER_OF_BEATS + 1)
+    @setToBeat(@currentBeat)
+
+  prevBeat: (number) ->
+    @currentBeat = if @currentBeat is 0 then NUMBER_OF_BEATS else @currentBeat - 1
+    @setToBeat(@currentBeat)
+
+  setToStart: ->
+    @currentBeat = 0
+    @setToBeat(@currentBeat)
+
+  setToEnd: ->
+    @currentBeat = @numberOfBeats
+    @setToBeat(@currentBeat)
+
+  _addEvents: ->
+    $(window).on 'keydown.composer', (e) =>
+      switch e.keyCode
+        when 36, 72  # home, H
+          @setToStart()
+        when 35, 76  # end, L
+          @setToEnd()
+        when 37, 74  # left arrow, J
+          @prevBeat()
+        when 39, 75  # right arrow, K
+          @nextBeat()
+
+  _removeEvents: ->
+    $(window).unbind '.composer'
 
 #---
 
 $(window).on 'load', ->
-  $canvas = $('#canvas')
-  for [0...2]
-    $track = $('<div class="track">')
-    for i in [0...16]
-      $cell = $('<div class="cell"><div></div></div>')
-      $cell.addClass('on') if Math.round(Math.random()) == 0
-      $cell.addClass('last') if i is 15
-      $track.append($cell)
-    $canvas.append($track)
-  $canvas.find('.cell:not(.on) > div').append("✓")
-  $canvas.find('.cell.on > div').append("✗")
-  $canvas
-    .on('click',     '.cell', -> $(this).toggleClass('selected'))
-    .on('mousedown', '.cell', -> $(this).addClass('mousedown'))
-    .on('mouseup',   '.cell', -> $(this).addClass('over'))
-    .on('mouseup',            -> $('.cell', this).removeClass('mousedown'))
-    .on('mouseout',  '.cell', -> $(this).removeClass('over'))
-  #composer.init(60)
+  composer.init(60)
+  composer.start()
 

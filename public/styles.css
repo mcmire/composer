@@ -23,21 +23,38 @@ a {
 
 #canvas {
   margin: 0 auto;
-  display: table;
+  position: relative;
+  /*width: 640px;*/
+  padding: 10px 0;
+}
+
+#cursor {
+  border-left: 2px solid blue;
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  opacity: 1;
+  /*display: none;*/
+}
+
+#board {
 }
 
 .track {
-  height: 32px;
-  margin-bottom: 8px;
+  /*height: 32px;*/
+  /*margin-bottom: 8px;*/
 }
 
 .cell {
-  width: 32px;
-  height: 32px;
+  /*width: 32px;*/
+  /*height: 32px;*/
   border: 2px solid silver;
   cursor: pointer;
   display: inline-block;
-  margin-right: 8px;
+  /*margin-right: 8px;*/
   position: relative;
 }
 .cell > div {
