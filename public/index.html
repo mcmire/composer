@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="ender.js"></script>
-  <script src="composer.js"></script>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="stylesheets/main.css">
 </head>
 <body>
 
@@ -21,6 +19,18 @@
   </p>
 
 </div>
+
+<script src="/javascripts/vendor/ender.js"></script>
+<script src="/javascripts/app/util.js"></script>
+<script src="/javascripts/app/cursor.js"></script>
+<script src="/javascripts/app/canvas.js"></script>
+<script src="/javascripts/app/main.js"></script>
+
+<script>
+  $(window).on('load', function() {
+    composer.main.init(30)
+  })
+</script>
 
 </body>
 </html>
