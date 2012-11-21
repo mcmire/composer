@@ -428,8 +428,11 @@ class NoteEvent
 cursor = do ->
   getStyle = document.defaultView.getComputedStyle
   elem =
-    numberOfBeats = startTime = finishTime = finishDistance =
-    render = timer = null
+  numberOfSlots = beatsPerSlot =
+  startTime = finishTime =
+  finishDistance =
+  render = timer =
+    null
   isRunning = false
 
   set = (val) ->
@@ -439,13 +442,15 @@ cursor = do ->
     @composer = @canvas.getComposer()
     @$elem = $('#cursor')
     elem = @$elem[0]
-    numberOfBeats = @composer.getNumberOfBeats()
+    numberOfSlots = @composer.getNumberOfSlots()
+    beatsPerSlot = @composer.getBeatsPerSlot()
     finishDistance = @canvas.getBeatPosition('last')
     return this
 
   setBpm: (bpm) ->
-    finishTime = (60 / bpm) * numberOfBeats * 1000
-    startTime = (new Date()).getTime()
+    secondsPerBeat = 60 / bpm
+    numBeats = beatsPerSlot * numberOfSlots
+    finishElapsedTime = secondsPerBeat * numBeats * 1000
     render = =>
       return if not isRunning
       # map time to pixels
@@ -455,42 +460,33 @@ cursor = do ->
       # so, how many pixels do we need to move to catch up?
       now = (new Date()).getTime()
       # map pct time to pct pixels
-      timeSoFar = now - startTime
-      if timeSoFar >= finishTime
+      elapsedTimeSoFar = now - startTime
+      if elapsedTimeSoFar >= finishElapsedTime
         @setToEnd()
         return
-      changeInDistance = Math.floor((timeSoFar / finishTime) * finishDistance)
-      currentDistance = getStyle(elem).left
-      currentDistance = if currentDistance? then parseInt(currentDistance, 10) else 0
-      distanceSoFar = currentDistance + changeInDistance
-      console.log(
-        bpm: bpm
-        numberOfBeats: numberOfBeats
-        finishTime: finishTime
-        startTime: startTime
-        timeSoFar: timeSoFar
-        currentDistance: currentDistance
-        changeInDistance: changeInDistance
-        finishDistance: finishDistance
-        distanceSoFar: distanceSoFar
-      )
+      pctComplete = elapsedTimeSoFar / finishElapsedTime
+      pctComplete = 1 if pctComplete >= 1
+      distanceSoFar = pctComplete * finishDistance
       if distanceSoFar >= finishDistance
         @setToEnd()
+        isRunning = false
         return
       else
         set(distanceSoFar)
-        #timer = window.webkitRequestAnimationFrame(render)
+        timer = window.webkitRequestAnimationFrame(render)
 
   isRunning: -> isRunning
 
   start: ->
+    @setToStart()
+    startTime = (new Date()).getTime()
     isRunning = true
     timer = window.webkitRequestAnimationFrame(render)
 
   stop: ->
+    @setToStart()
     isRunning = false
     window.webkitCancelRequestAnimationFrame(timer)
-    @setToStart()
 
   setToBeat: (number) ->
     set(@canvas.getBeatPosition(number))
@@ -509,9 +505,9 @@ canvas = do ->
   NUMBER_OF_TRACKS = 2
 
   init: (@composer) ->
-    @numberOfBeats = @composer.getNumberOfBeats()
+    @numberOfSlots = @composer.getNumberOfSlots()
     @$elem = $('#canvas')
-      .css(width: (CELL_SIZE + CELL_PADDING) * @numberOfBeats)
+      .css(width: (CELL_SIZE + CELL_PADDING) * @numberOfSlots)
     @$board  = $('#board')
     @cursor = cursor.init(this)
     @_populateBoard()
@@ -525,9 +521,9 @@ canvas = do ->
   getCursor: -> @cursor
 
   getBeatPosition: (index) ->
-    index = @numberOfBeats if index is 'last'
+    index = @numberOfSlots if index is 'last'
     pos = (CELL_SIZE + CELL_PADDING) * (index - 1)
-    if index == @numberOfBeats
+    if index == @numberOfSlots
       pos += CELL_SIZE
     else
       pos += CELL_SIZE + CELL_PADDING
@@ -540,7 +536,7 @@ canvas = do ->
         height: CELL_SIZE
         'margin-bottom': CELL_PADDING
       )
-      for i in [0...@numberOfBeats]
+      for i in [0...@numberOfSlots]
         $cell = $('<div class="cell"><div></div></div>')
         $cell.css(
           width: CELL_SIZE
@@ -565,7 +561,8 @@ canvas = do ->
 #---
 
 window.composer = do ->
-  NUMBER_OF_BEATS = 16
+  NUMBER_OF_SLOTS = 16
+  BEATS_PER_SLOT = 1/16
 
   init: (bpm, opts) ->
     #@player = new Player(this, @sequences, autoplay: opts.autoplay)
@@ -578,7 +575,8 @@ window.composer = do ->
     @_addEvents()
     return this
 
-  getNumberOfBeats: -> NUMBER_OF_BEATS
+  getNumberOfSlots: -> NUMBER_OF_SLOTS
+  getBeatsPerSlot: -> BEATS_PER_SLOT
 
   setBpm: (@bpm) ->
     # 120 bpm is 120 beats / 60 seconds or 0.5 per beat
@@ -613,11 +611,11 @@ window.composer = do ->
     @cursor.setToBeat(number)
 
   nextBeat: (number) ->
-    @currentBeat = (@currentBeat + 1) % (NUMBER_OF_BEATS + 1)
+    @currentBeat = (@currentBeat + 1) % (NUMBER_OF_SLOTS + 1)
     @setToBeat(@currentBeat)
 
   prevBeat: (number) ->
-    @currentBeat = if @currentBeat is 0 then NUMBER_OF_BEATS else @currentBeat - 1
+    @currentBeat = if @currentBeat is 0 then NUMBER_OF_SLOTS else @currentBeat - 1
     @setToBeat(@currentBeat)
 
   setToStart: ->
@@ -625,7 +623,7 @@ window.composer = do ->
     @setToBeat(@currentBeat)
 
   setToEnd: ->
-    @currentBeat = @numberOfBeats
+    @currentBeat = @numberOfSlots
     @setToBeat(@currentBeat)
 
   _addEvents: ->
@@ -639,6 +637,8 @@ window.composer = do ->
           @prevBeat()
         when 39, 75  # right arrow, K
           @nextBeat()
+        when 32  # space
+          @toggle()
 
   _removeEvents: ->
     $(window).unbind '.composer'
@@ -646,6 +646,6 @@ window.composer = do ->
 #---
 
 $(window).on 'load', ->
-  composer.init(60)
-  composer.start()
+  composer.init(30)
+  #composer.start()
 
