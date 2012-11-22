@@ -7,8 +7,7 @@ composer.cursor = (function () {
     , main
     , $elem
     , elem
-    , numberOfSlots
-    , beatsPerSlot
+    , numberOfCells
     , finishDistance
     , startTime
     , timer
@@ -22,16 +21,14 @@ composer.cursor = (function () {
         main = canvas.getMain()
         $elem = $('#cursor')
         elem = $elem[0]
-        numberOfSlots = main.numberOfSlots
-        beatsPerSlot = main.beatsPerSlot
+        numberOfCells = main.numberOfCells
         finishDistance = canvas.getBeatPosition('last')
         return this
       }
 
     , setBpm = function (bpm) {
         var secondsPerBeat = 60 / bpm
-          , numBeats = beatsPerSlot * numberOfSlots
-          , finishElapsedTime = secondsPerBeat * numBeats * 1000
+          , finishElapsedTime = secondsPerBeat * 1000
 
         render = function () {
           var distanceSoFar,
@@ -86,7 +83,7 @@ composer.cursor = (function () {
         window.webkitCancelRequestAnimationFrame(timer)
       }
 
-    , setToBeat = function (number) {
+    , setToCell = function (number) {
         moveTo(canvas.getBeatPosition(number))
       }
 
@@ -105,7 +102,7 @@ composer.cursor = (function () {
   return {
     init: init
   , setBpm: setBpm
-  , setToBeat: setToBeat
+  , setToCell: setToCell
   , start: start
   , stop: stop
   }

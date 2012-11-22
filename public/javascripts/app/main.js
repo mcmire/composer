@@ -3,13 +3,16 @@
 window.composer || (window.composer = {})
 
 composer.main = (function () {
-  var NUMBER_OF_SLOTS = 16
-    , BEATS_PER_SLOT = 1 / NUMBER_OF_SLOTS
+  var TRACKS = ['snare']
+    , NUMBER_OF_CELLS = 16
+    , DURATION_TIMES = {
+        '16th': (1/16)
+      }
 
     , canvas
     , cursor
     , isRunning
-    , currentBeat
+    , currentCell
     , bpm
     , spb
 
@@ -17,8 +20,10 @@ composer.main = (function () {
         canvas = composer.canvas.init(this)
         cursor = canvas.getCursor()
         setBpm(bpm)
+        var sequence = generateSequence.call(this)
+        canvas.setSequence(sequence)
         isRunning = false
-        currentBeat = 0
+        currentCell = 0
         addEvents()
         return this
       }
@@ -45,6 +50,10 @@ composer.main = (function () {
         return n * spb
       }
 
+    , durationTypeToTime = function (durationType) {
+        return beatsToTime(DURATION_TIMES[durationType])
+      }
+
     , start = function () {
         isRunning = true
         //player.start()
@@ -61,33 +70,46 @@ composer.main = (function () {
         isRunning ? stop() : start()
       }
 
-    , setToBeat = function (number) {
-        //@player.setToBeat(number)
-        cursor.setToBeat(number)
+    , setToCell = function (number) {
+        //@player.setToCell(number)
+        cursor.setToCell(number)
       }
 
-    , nextBeat = function (number) {
-        currentBeat = (currentBeat + 1) % (NUMBER_OF_SLOTS + 1)
-        setToBeat(currentBeat)
+    , nextCell = function (number) {
+        currentCell = (currentCell + 1) % (NUMBER_OF_CELLS + 1)
+        setToCell(currentCell)
       }
 
-    , prevBeat = function (number) {
-        currentBeat = currentBeat === 0 ? NUMBER_OF_SLOTS : currentBeat - 1
-        setToBeat(currentBeat)
+    , prevCell = function (number) {
+        currentCell = currentCell === 0 ? NUMBER_OF_CELLS : currentCell - 1
+        setToCell(currentCell)
       }
 
     , setToStart = function () {
-        currentBeat = 0
-        setToBeat(currentBeat)
+        currentCell = 0
+        setToCell(currentCell)
       }
 
     , setToEnd = function () {
-        currentBeat = numberOfSlots
-        setToBeat(currentBeat)
+        currentCell = NUMBER_OF_CELLS
+        setToCell(currentCell)
+      }
+
+    , generateSequence = function () {
+        var track
+          , j
+          , sequence = new composer.Sequence(this)
+        $.v.each(TRACKS, function (sample) {
+          track = sequence.addTrack(sample)
+          for (j = 0; j < NUMBER_OF_CELLS; j++) {
+            track.addNoteEvent('16th', Math.round(Math.random()) === 0)
+          }
+        })
+        return sequence
       }
 
     , addEvents = function () {
-        $(window).on('keydown.composer', function (e) {
+        $(window).on('keydown.composer.main', function (e) {
           switch (e.keyCode) {
             // home, H
             case 36: case 72:
@@ -97,10 +119,10 @@ composer.main = (function () {
               return setToEnd()
             // left arrow, J
             case 37: case 74:
-              return prevBeat()
+              return prevCell()
             // right arrow, K
             case 39: case 75:
-              return nextBeat()
+              return nextCell()
             // space
             case 32:
               return toggle()
@@ -109,13 +131,13 @@ composer.main = (function () {
       }
 
     , removeEvents = function () {
-        $(window).unbind('.composer')
+        $(window).off('.composer.main')
       }
 
   return {
     init: init
-  , numberOfSlots: NUMBER_OF_SLOTS
-  , beatsPerSlot: BEATS_PER_SLOT
+  , numberOfCells: NUMBER_OF_CELLS
+  , durationTypeToTime: durationTypeToTime
   }
 })()
 

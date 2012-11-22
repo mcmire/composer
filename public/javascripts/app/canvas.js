@@ -5,25 +5,27 @@ window.composer || (window.composer = {})
 composer.canvas = (function () {
   var CELL_SIZE = 32    // pixels
     , CELL_PADDING = 8  // pixels
-    , NUMBER_OF_TRACKS = 2
 
     , main
-    , numberOfSlots
+    , numberOfCells
     , $elem
     , $board
     , cursor
 
-    , init = function (_main) {
+    , init = function (_main, sequence) {
         main = _main
-        numberOfSlots = main.numberOfSlots
+        numberOfCells = main.numberOfCells
         $elem = $('#canvas').css({
-          width: (CELL_SIZE + CELL_PADDING) * numberOfSlots
+          width: (CELL_SIZE + CELL_PADDING) * numberOfCells
         })
         $board = $('#board')
         cursor = composer.cursor.init(this)
-        populateBoard()
         addEvents()
         return this
+      }
+
+    , setSequence = function (sequence) {
+        populateBoard(sequence)
       }
 
     , getMain = function () {
@@ -34,25 +36,13 @@ composer.canvas = (function () {
         return cursor
       }
 
-    , getCellSize = function () {
-        return CELL_SIZE
-      }
-
-    , getCellPadding = function () {
-        return CELL_PADDING
-      }
-
-    , getNumberOfTracks = function () {
-        return NUMBER_OF_TRACKS
-      }
-
     , getBeatPosition = function (index) {
         var pos
         if (index === 'last') {
-          index = numberOfSlots
+          index = numberOfCells
         }
         pos = (CELL_SIZE + CELL_PADDING) * (index - 1)
-        if (index == numberOfSlots) {
+        if (index == numberOfCells) {
           pos += CELL_SIZE
         } else {
           pos += CELL_SIZE + CELL_PADDING
@@ -60,35 +50,34 @@ composer.canvas = (function () {
         return pos
       }
 
-    , populateBoard = function () {
-        var $cell
-          , $track
-          , i
-          , j
-        for (i = 0; i < NUMBER_OF_TRACKS; i++) {
-          $track = $('<div class="track">')
+    , populateBoard = function (sequence) {
+        sequence.eachTrack(function (track, i) {
+          var $track = $('<div class="track">')
           $track.css({
-            height: CELL_SIZE,
-            'margin-bottom': CELL_PADDING
+            height: CELL_SIZE
           })
-          j = 0
-          for (j = 0; j < numberOfSlots; j++) {
-            $cell = $('<div class="cell"><div></div></div>')
+          if (i === sequence.getNumTracks()-1) {
+            $track.addClass('last')
+          } else {
+            $track.css({'margin-bottom': CELL_PADDING})
+          }
+          track.eachNoteEvent(function (event, j) {
+            var $cell = $('<div class="cell"><div></div></div>')
             $cell.css({
               width: CELL_SIZE,
               height: CELL_SIZE,
               'margin-right': CELL_PADDING
             })
-            if (Math.round(Math.random()) === 0) {
+            if (event.isOn) {
               $cell.addClass('on')
             }
-            if (i === 15) {
+            if (j === track.getNumNoteEvents()-1) {
               $cell.addClass('last')
             }
             $track.append($cell)
-          }
+          })
           $board.append($track)
-        }
+        })
         $board.find('.cell:not(.on) > div').append("✓")
         $board.find('.cell.on > div').append("✗")
       }
@@ -112,11 +101,16 @@ composer.canvas = (function () {
           })
       }
 
+    , removeEvents = function() {
+        $board.off('.composer.canvas')
+      }
+
   return {
     init: init
   , getMain: getMain
   , getCursor: getCursor
   , getBeatPosition: getBeatPosition
+  , setSequence: setSequence
   }
 })()
 
