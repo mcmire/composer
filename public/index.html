@@ -22,16 +22,19 @@
 
 <script src="/javascripts/vendor/ender.js"></script>
 <script src="/javascripts/app/util.js"></script>
-<script src="/javascripts/app/cursor.js"></script>
-<script src="/javascripts/app/canvas.js"></script>
+<script src="/javascripts/app/audio.js"></script>
+<script src="/javascripts/app/audio_event.js"></script>
 <script src="/javascripts/app/sequence.js"></script>
 <script src="/javascripts/app/track.js"></script>
 <script src="/javascripts/app/note_event.js"></script>
+<script src="/javascripts/app/cursor.js"></script>
+<script src="/javascripts/app/canvas.js"></script>
+<script src="/javascripts/app/player.js"></script>
 <script src="/javascripts/app/main.js"></script>
 
 <script>
   $(window).on('load', function() {
-    composer.main.init(30)
+    composer.main.initWhenReady(30)
   })
 </script>
 

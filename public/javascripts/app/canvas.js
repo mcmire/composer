@@ -3,24 +3,23 @@
 window.composer || (window.composer = {})
 
 composer.canvas = (function () {
-  var CELL_SIZE = 32    // pixels
-    , CELL_PADDING = 8  // pixels
+  var FRAME_SIZE = 32    // pixels
+    , FRAME_PADDING = 8  // pixels
 
     , main
-    , numberOfCells
+    , numberOfFrames
     , $elem
     , $board
     , cursor
 
     , init = function (_main, sequence) {
         main = _main
-        numberOfCells = main.numberOfCells
+        numberOfFrames = main.numberOfFrames
         $elem = $('#canvas').css({
-          width: (CELL_SIZE + CELL_PADDING) * numberOfCells
+          width: (FRAME_SIZE + FRAME_PADDING) * numberOfFrames
         })
         $board = $('#board')
         cursor = composer.cursor.init(this)
-        addEvents()
         return this
       }
 
@@ -39,13 +38,13 @@ composer.canvas = (function () {
     , getBeatPosition = function (index) {
         var pos
         if (index === 'last') {
-          index = numberOfCells
+          index = numberOfFrames
         }
-        pos = (CELL_SIZE + CELL_PADDING) * (index - 1)
-        if (index == numberOfCells) {
-          pos += CELL_SIZE
+        pos = (FRAME_SIZE + FRAME_PADDING) * (index - 1)
+        if (index == numberOfFrames) {
+          pos += FRAME_SIZE
         } else {
-          pos += CELL_SIZE + CELL_PADDING
+          pos += FRAME_SIZE + FRAME_PADDING
         }
         return pos
       }
@@ -54,19 +53,19 @@ composer.canvas = (function () {
         sequence.eachTrack(function (track, i) {
           var $track = $('<div class="track">')
           $track.css({
-            height: CELL_SIZE
+            height: FRAME_SIZE
           })
           if (i === sequence.getNumTracks()-1) {
             $track.addClass('last')
           } else {
-            $track.css({'margin-bottom': CELL_PADDING})
+            $track.css({'margin-bottom': FRAME_PADDING})
           }
           track.eachNoteEvent(function (event, j) {
             var $cell = $('<div class="cell"><div></div></div>')
             $cell.css({
-              width: CELL_SIZE,
-              height: CELL_SIZE,
-              'margin-right': CELL_PADDING
+              width: FRAME_SIZE,
+              height: FRAME_SIZE,
+              'margin-right': FRAME_PADDING
             })
             if (event.isOn) {
               $cell.addClass('on')
@@ -111,6 +110,8 @@ composer.canvas = (function () {
   , getCursor: getCursor
   , getBeatPosition: getBeatPosition
   , setSequence: setSequence
+  , addEvents: addEvents
+  , removeEvents: removeEvents
   }
 })()
 

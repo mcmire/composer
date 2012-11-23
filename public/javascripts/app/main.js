@@ -3,29 +3,45 @@
 window.composer || (window.composer = {})
 
 composer.main = (function () {
-  var TRACKS = ['snare']
-    , NUMBER_OF_CELLS = 16
-    , DURATION_TIMES = {
-        '16th': (1/16)
-      }
+  var TRACKS = ['kick']
+    , NUMBER_OF_FRAMES = 16
+    , FRAME_LENGTH = 1 / NUMBER_OF_FRAMES
 
     , canvas
     , cursor
+    , audio
+    , player
     , isRunning
-    , currentCell
+    , currentFrame
     , bpm
     , spb
+    , secondsPerFrame
+
+    , initWhenReady = function (bpm, opts) {
+        init.call(this, bpm, opts)
+        whenReady(addEvents)
+      }
 
     , init = function (bpm, opts) {
         canvas = composer.canvas.init(this)
         cursor = canvas.getCursor()
+        audio  = composer.audio.init(this)
+        player = composer.player.init(this, audio)
+
         setBpm(bpm)
+
         var sequence = generateSequence.call(this)
         canvas.setSequence(sequence)
+        player.setSequence(sequence)
+
         isRunning = false
-        currentCell = 0
-        addEvents()
+        currentFrame = 0
+
         return this
+      }
+
+    , whenReady = function (fn) {
+        audio.whenReady(fn)
       }
 
     , getIsRunning = function () {
@@ -36,6 +52,7 @@ composer.main = (function () {
         bpm = _bpm
         // ex: 120 bpm is 120 beats / 60 seconds or 0.5 per beat
         spb = 60 / bpm
+        secondsPerFrame = (FRAME_LENGTH / bpm) * 60
         cursor.setBpm(bpm)
       }
 
@@ -50,19 +67,19 @@ composer.main = (function () {
         return n * spb
       }
 
-    , durationTypeToTime = function (durationType) {
-        return beatsToTime(DURATION_TIMES[durationType])
+    , framesToTime = function(n) {
+        return n * secondsPerFrame
       }
 
     , start = function () {
         isRunning = true
-        //player.start()
+        player.start()
         cursor.start()
       }
 
     , stop = function () {
         isRunning = false
-        //player.stop()
+        player.stop()
         cursor.stop()
       }
 
@@ -70,39 +87,38 @@ composer.main = (function () {
         isRunning ? stop() : start()
       }
 
-    , setToCell = function (number) {
-        //@player.setToCell(number)
-        cursor.setToCell(number)
+    , setToFrame = function (number) {
+        player.setToFrame(number)
+        cursor.setToFrame(number)
       }
 
-    , nextCell = function (number) {
-        currentCell = (currentCell + 1) % (NUMBER_OF_CELLS + 1)
-        setToCell(currentCell)
+    , nextFrame = function (number) {
+        currentFrame = (currentFrame + 1) % (NUMBER_OF_FRAMES + 1)
+        setToFrame(currentFrame)
       }
 
-    , prevCell = function (number) {
-        currentCell = currentCell === 0 ? NUMBER_OF_CELLS : currentCell - 1
-        setToCell(currentCell)
+    , prevFrame = function (number) {
+        currentFrame = currentFrame === 0 ? NUMBER_OF_FRAMES : currentFrame - 1
+        setToFrame(currentFrame)
       }
 
     , setToStart = function () {
-        currentCell = 0
-        setToCell(currentCell)
+        currentFrame = 0
+        setToFrame(currentFrame)
       }
 
     , setToEnd = function () {
-        currentCell = NUMBER_OF_CELLS
-        setToCell(currentCell)
+        currentFrame = NUMBER_OF_FRAMES
+        setToFrame(currentFrame)
       }
 
     , generateSequence = function () {
-        var track
-          , j
-          , sequence = new composer.Sequence(this)
+        var sequence = new composer.Sequence(this)
         $.v.each(TRACKS, function (sample) {
-          track = sequence.addTrack(sample)
-          for (j = 0; j < NUMBER_OF_CELLS; j++) {
-            track.addNoteEvent('16th', Math.round(Math.random()) === 0)
+          var j
+            , track = sequence.addTrack(sample)
+          for (j = 0; j < NUMBER_OF_FRAMES; j++) {
+            track.addNoteEvent(1, Math.round(Math.random()) === 0)
           }
         })
         return sequence
@@ -119,15 +135,16 @@ composer.main = (function () {
               return setToEnd()
             // left arrow, J
             case 37: case 74:
-              return prevCell()
+              return prevFrame()
             // right arrow, K
             case 39: case 75:
-              return nextCell()
+              return nextFrame()
             // space
             case 32:
               return toggle()
           }
         })
+        canvas.addEvents()
       }
 
     , removeEvents = function () {
@@ -135,9 +152,10 @@ composer.main = (function () {
       }
 
   return {
-    init: init
-  , numberOfCells: NUMBER_OF_CELLS
-  , durationTypeToTime: durationTypeToTime
+    initWhenReady: initWhenReady
+  , init: init
+  , numberOfFrames: NUMBER_OF_FRAMES
+  , framesToTime: framesToTime
   }
 })()
 
