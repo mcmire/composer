@@ -31,10 +31,11 @@
 <script src="/javascripts/app/canvas.js"></script>
 <script src="/javascripts/app/player.js"></script>
 <script src="/javascripts/app/main.js"></script>
+<script src="/javascripts/app/composer.js"></script>
 
 <script>
   $(window).on('load', function() {
-    composer.main.initWhenReady(30)
+    composer.init({bpm: 30})
   })
 </script>
 

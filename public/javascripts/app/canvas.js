@@ -12,7 +12,7 @@ composer.canvas = (function () {
     , $board
     , cursor
 
-    , init = function (_main, sequence) {
+    , init = function (_main) {
         main = _main
         numberOfFrames = main.numberOfFrames
         $elem = $('#canvas').css({

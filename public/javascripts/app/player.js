@@ -3,15 +3,15 @@
 window.composer || (window.composer = {})
 
 composer.player = (function () {
-  var main
-    , audio
+  var audio = composer.audio
+
+    , main
     , sequence
     , startFrame
     , scheduledAudioEvents
 
-    , init = function (_main, _audio) {
+    , init = function (_main) {
         main = _main
-        audio = _audio
         scheduledAudioEvents = []
         return this
       }

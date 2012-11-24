@@ -8,32 +8,18 @@ composer.audio = (function () {
     , SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare']
 
     , samplesByName
-    , whenReadyCallback
-    , main
-    , isLoaded
+    , isLoaded = false
     , audioContext
     , masterNode
 
-    , whenReady = function (fn) {
-        whenReadyCallback = fn
-      }
-
-    , init = function (_main) {
-        main = _main
-        isLoaded = false
+    , load = function (fn) {
         setupAudioContext()
-        loadSamples()
+        loadSamples(fn)
         return this
       }
 
     , getAudioContext = function () {
         return audioContext
-      }
-
-    , checkLoaded = function () {
-        if (!isLoaded) {
-          throw "Audio isn't loaded yet!"
-        }
       }
 
     , connectNewSample = function (sample) {
@@ -62,7 +48,7 @@ composer.audio = (function () {
         masterNode.connect(audioContext.destination)
       }
 
-    , loadSamples = function () {
+    , loadSamples = function (fn) {
         var samples = $.v.map(SAMPLE_NAMES, function (name) {
           return {name: name, url: "samples/"+name+".wav"}
         })
@@ -76,7 +62,7 @@ composer.audio = (function () {
             sample.buffer = buffer.buffer
           })
           isLoaded = true
-          whenReadyCallback && whenReadyCallback()
+          fn()
         })
       }
 
@@ -87,9 +73,7 @@ composer.audio = (function () {
   return {
     getAudioContext: getAudioContext
   , samplesByName: samplesByName
-  , whenReady: whenReady
-  , init: init
-  , checkLoaded: checkLoaded
+  , load: load
   , connectNewSample: connectNewSample
   , lookupSample: lookupSample
   }

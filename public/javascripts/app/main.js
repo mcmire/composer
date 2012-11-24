@@ -2,6 +2,7 @@
 
 window.composer || (window.composer = {})
 
+// This is the controller
 composer.main = (function () {
   var TRACKS = ['kick']
     , NUMBER_OF_FRAMES = 16
@@ -9,39 +10,31 @@ composer.main = (function () {
 
     , canvas
     , cursor
-    , audio
     , player
+    , currentSequence
     , isRunning
     , currentFrame
     , bpm
     , spb
     , secondsPerFrame
 
-    , initWhenReady = function (bpm, opts) {
-        init.call(this, bpm, opts)
-        whenReady(addEvents)
-      }
+    , init = function (opts) {
+        var bpm = opts.bpm
 
-    , init = function (bpm, opts) {
         canvas = composer.canvas.init(this)
         cursor = canvas.getCursor()
-        audio  = composer.audio.init(this)
-        player = composer.player.init(this, audio)
+        player = composer.player.init(this)
 
         setBpm(bpm)
 
-        var sequence = generateSequence.call(this)
-        canvas.setSequence(sequence)
-        player.setSequence(sequence)
+        loadNewSequence()
 
         isRunning = false
         currentFrame = 0
 
-        return this
-      }
+        addEvents()
 
-    , whenReady = function (fn) {
-        audio.whenReady(fn)
+        return this
       }
 
     , getIsRunning = function () {
@@ -112,7 +105,7 @@ composer.main = (function () {
         setToFrame(currentFrame)
       }
 
-    , generateSequence = function () {
+    , loadNewSequence = function () {
         var sequence = new composer.Sequence(this)
         $.v.each(TRACKS, function (sample) {
           var j
@@ -121,7 +114,9 @@ composer.main = (function () {
             track.addNoteEvent(1, Math.round(Math.random()) === 0)
           }
         })
-        return sequence
+        currentSequence = sequence
+        canvas.setSequence(currentSequence)
+        player.setSequence(currentSequence)
       }
 
     , addEvents = function () {
@@ -149,11 +144,11 @@ composer.main = (function () {
 
     , removeEvents = function () {
         $(window).off('.composer.main')
+        canvas.removeEvents()
       }
 
   return {
-    initWhenReady: initWhenReady
-  , init: init
+    init: init
   , numberOfFrames: NUMBER_OF_FRAMES
   , framesToTime: framesToTime
   }
