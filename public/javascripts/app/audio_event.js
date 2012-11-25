@@ -7,10 +7,11 @@ window.composer || (window.composer = {})
 //
 composer.AudioEvent = function(noteEvent) {
   var audio = composer.audio
-    , audioNode = audio.connectNewSample(audio.lookupSample(noteEvent.sample))
+    , sample = audio.lookupSample(noteEvent.getSampleName())
+    , audioNode = audio.connectNewSample(sample)
 
-    , getNumFrames = function() {
-        return noteEvent.numFrames
+    , getDurationInTicks = function() {
+        return noteEvent.durationInTicks
       }
 
     , scheduleAt = function (time, durationInTime) {
@@ -43,7 +44,7 @@ composer.AudioEvent = function(noteEvent) {
       }
 
   $.v.extend(this, {
-    getNumFrames: getNumFrames
+    getDurationInTicks: getDurationInTicks
   , scheduleAt: scheduleAt
   , stop: stop
   , isFinished: isFinished

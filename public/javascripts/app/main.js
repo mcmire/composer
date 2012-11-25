@@ -5,18 +5,18 @@ window.composer || (window.composer = {})
 // This is the controller
 composer.main = (function () {
   var TRACKS = ['kick']
-    , NUMBER_OF_FRAMES = 16
-    , FRAME_LENGTH = 1 / NUMBER_OF_FRAMES
+    , NUMBER_OF_TICKS = 16
+    , TICK_LENGTH = 1 / NUMBER_OF_TICKS
 
     , canvas
     , cursor
     , player
     , currentSequence
     , isRunning
-    , currentFrame
+    , currentTick
     , bpm
     , spb
-    , secondsPerFrame
+    , secondsPerTick
 
     , init = function (opts) {
         var bpm = opts.bpm
@@ -30,11 +30,15 @@ composer.main = (function () {
         loadNewSequence()
 
         isRunning = false
-        currentFrame = 0
+        currentTick = 0
 
         addEvents()
 
         return this
+      }
+
+    , getCurrentSequence = function () {
+        return currentSequence
       }
 
     , getIsRunning = function () {
@@ -45,7 +49,7 @@ composer.main = (function () {
         bpm = _bpm
         // ex: 120 bpm is 120 beats / 60 seconds or 0.5 per beat
         spb = 60 / bpm
-        secondsPerFrame = (FRAME_LENGTH / bpm) * 60
+        secondsPerTick = (TICK_LENGTH / bpm) * 60
         cursor.setBpm(bpm)
       }
 
@@ -60,8 +64,8 @@ composer.main = (function () {
         return n * spb
       }
 
-    , framesToTime = function(n) {
-        return n * secondsPerFrame
+    , ticksToTime = function(n) {
+        return n * secondsPerTick
       }
 
     , start = function () {
@@ -80,29 +84,29 @@ composer.main = (function () {
         isRunning ? stop() : start()
       }
 
-    , setToFrame = function (number) {
-        player.setToFrame(number)
-        cursor.setToFrame(number)
+    , setToTick = function (number) {
+        player.setToTick(number)
+        cursor.setToTick(number)
       }
 
-    , nextFrame = function (number) {
-        currentFrame = (currentFrame + 1) % (NUMBER_OF_FRAMES + 1)
-        setToFrame(currentFrame)
+    , nextTick = function (number) {
+        currentTick = (currentTick + 1) % (NUMBER_OF_TICKS + 1)
+        setToTick(currentTick)
       }
 
-    , prevFrame = function (number) {
-        currentFrame = currentFrame === 0 ? NUMBER_OF_FRAMES : currentFrame - 1
-        setToFrame(currentFrame)
+    , prevTick = function (number) {
+        currentTick = currentTick === 0 ? NUMBER_OF_TICKS : currentTick - 1
+        setToTick(currentTick)
       }
 
     , setToStart = function () {
-        currentFrame = 0
-        setToFrame(currentFrame)
+        currentTick = 0
+        setToTick(currentTick)
       }
 
     , setToEnd = function () {
-        currentFrame = NUMBER_OF_FRAMES
-        setToFrame(currentFrame)
+        currentTick = NUMBER_OF_TICKS
+        setToTick(currentTick)
       }
 
     , loadNewSequence = function () {
@@ -110,14 +114,18 @@ composer.main = (function () {
         $.v.each(TRACKS, function (sample) {
           var j
             , track = sequence.addTrack(sample)
-          for (j = 0; j < NUMBER_OF_FRAMES; j++) {
-            track.addNoteEvent(1, Math.round(Math.random()) === 0)
+          for (j = 0; j < NUMBER_OF_TICKS; j++) {
+            track.addCell(1, Math.round(Math.random()) === 0)
           }
         })
-        currentSequence = sequence
-        canvas.setSequence(currentSequence)
-        player.setSequence(currentSequence)
+        setSequence(sequence)
       }
+
+    , setSequence = function (sequence) {
+      currentSequence = sequence
+      canvas.setSequence(sequence)
+      player.setSequence(sequence)
+    }
 
     , addEvents = function () {
         $(window).on('keydown.composer.main', function (e) {
@@ -130,16 +138,26 @@ composer.main = (function () {
               return setToEnd()
             // left arrow, J
             case 37: case 74:
-              return prevFrame()
+              return prevTick()
             // right arrow, K
             case 39: case 75:
-              return nextFrame()
+              return nextTick()
             // space
             case 32:
               return toggle()
           }
         })
         canvas.addEvents()
+        $('#next').on('click', function() {
+          $.ajax({
+            method: 'post'
+          , type: 'json'
+          , contentType: 'application/json'
+          , url: '/sequences'
+          , data: JSON.stringify(currentSequence.toStore())
+          })
+          loadNewSequence()
+        })
       }
 
     , removeEvents = function () {
@@ -149,8 +167,9 @@ composer.main = (function () {
 
   return {
     init: init
-  , numberOfFrames: NUMBER_OF_FRAMES
-  , framesToTime: framesToTime
+  , getCurrentSequence: getCurrentSequence
+  , numberOfTicks: NUMBER_OF_TICKS
+  , ticksToTime: ticksToTime
   }
 })()
 

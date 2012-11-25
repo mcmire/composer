@@ -7,7 +7,7 @@ composer.player = (function () {
 
     , main
     , sequence
-    , startFrame
+    , startTick
     , scheduledAudioEvents
 
     , init = function (_main) {
@@ -23,12 +23,12 @@ composer.player = (function () {
     , start = function () {
         var startTime = audio.getAudioContext().currentTime
         removeFinishedAudioEvents()
-        sequence.eachFrame(function (noteEvents, frameIndex) {
-          if (frameIndex < startFrame) { return }
-          var time = startTime + main.framesToTime(frameIndex)
+        sequence.eachTick(function (noteEvents, tickIndex) {
+          if (tickIndex < startTick) { return }
+          var time = startTime + main.ticksToTime(tickIndex)
           $.v.each(noteEvents, function (noteEvent) {
             var audioEvent = new composer.AudioEvent(noteEvent)
-              , durationInTime = main.framesToTime(audioEvent.getNumFrames())
+              , durationInTime = main.ticksToTime(audioEvent.getDurationInTicks())
             audioEvent.scheduleAt(time, durationInTime)
             scheduledAudioEvents.push(audioEvent)
           })
@@ -40,7 +40,7 @@ composer.player = (function () {
         $.v.each(scheduledAudioEvents, function (audioEvent) {
           audioEvent.stop()
         })
-        startFrame = 0
+        startTick = 0
       }
 
     , removeFinishedAudioEvents = function () {
@@ -53,8 +53,8 @@ composer.player = (function () {
         scheduledAudioEvents = newScheduledAudioEvents
       }
 
-    , setToFrame = function (frameIndex) {
-        startFrame = frameIndex
+    , setToTick = function (tickIndex) {
+        startTick = tickIndex
       }
 
   return {
@@ -62,6 +62,6 @@ composer.player = (function () {
   , setSequence: setSequence
   , start: start
   , stop: stop
-  , setToFrame: setToFrame
+  , setToTick: setToTick
   }
 })()

@@ -3,47 +3,72 @@
 window.composer || (window.composer = {})
 
 composer.Track = (function() {
-  return function Track(sequence, sample) {
-    var frameCounter = 0
+  return function Track(sequence, sampleName) {
+    var tickCounter = 0
       , main = sequence.getMain()
-      , noteEvents = []
+      , cells = []
+      , cellsByTick = []
 
       , getSequence = function () {
           return sequence
         }
 
-      , addOnEvent = function (durationType) {
-          return addNoteEvent.call(this, durationType, true)
+      , getSampleName = function () {
+          return sampleName
         }
 
-      , addOffEvent = function (durationType) {
-          return addNoteEvent.call(this, durationType, false)
+      , addOnCell = function (durationType) {
+          return addCell.call(this, durationType, true)
         }
 
-      , addNoteEvent = function (numFrames, isOn) {
-          var noteEvent = new composer.NoteEvent(this, sample, numFrames, isOn)
-          noteEvents.push(noteEvent)
-          sequence.addNoteEventToFrame(frameCounter, noteEvent)
-          frameCounter += noteEvent.numFrames
-          return noteEvent
+      , addOffCell = function (durationType) {
+          return addCell.call(this, durationType, false)
         }
 
-      , eachNoteEvent = function (fn) {
-          $.v.each(noteEvents, fn)
+      , addCell = function (durationInTicks, isOn) {
+          var cell = new composer.Cell(this, durationInTicks, isOn)
+          cells.push(cell)
+
+          cellsByTick[tickCounter] = cell
+          sequence.addCell(tickCounter, cell)
+
+          tickCounter += cell.durationInTicks
+
+          return cell
         }
 
-      , getNumNoteEvents = function () {
-          return noteEvents.length
+      , eachCell = function (fn) {
+          $.v.each(cells, fn)
+        }
+
+      , getNumCells = function () {
+          return cells.length
+        }
+
+      , findCell = function(cellIndex) {
+          return cells[cellIndex]
+        }
+
+      , toStore = function () {
+          var cells_ = $.v.map(cells, function (cell) {
+            return cell.toStore()
+          })
+          return {
+            sampleName: sampleName
+          , cells: cells_
+          }
         }
 
     $.v.extend(this, {
       getSequence: getSequence
-    , addOnEvent: addOnEvent
-    , addOffEvent: addOffEvent
-    , addNoteEvent: addNoteEvent
-    , eachNoteEvent: eachNoteEvent
-    , noteEvents: noteEvents
-    , getNumNoteEvents: getNumNoteEvents
+    , getSampleName: getSampleName
+    , addOnCell: addOnCell
+    , addOffCell: addOffCell
+    , addCell: addCell
+    , eachCell: eachCell
+    , getNumCells: getNumCells
+    , findCell: findCell
+    , toStore: toStore
     })
   }
 })()

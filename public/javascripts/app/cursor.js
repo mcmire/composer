@@ -7,7 +7,7 @@ composer.cursor = (function () {
     , main
     , $elem
     , elem
-    , numberOfFrames
+    , numberOfTicks
     , finishDistance
     , startTime
     , timer
@@ -21,7 +21,7 @@ composer.cursor = (function () {
         main = canvas.getMain()
         $elem = $('#cursor')
         elem = $elem[0]
-        numberOfFrames = main.numberOfFrames
+        numberOfTicks = main.numberOfTicks
         finishDistance = canvas.getBeatPosition('last')
         return this
       }
@@ -83,7 +83,7 @@ composer.cursor = (function () {
         window.webkitCancelRequestAnimationFrame(timer)
       }
 
-    , setToFrame = function (number) {
+    , setToTick = function (number) {
         moveTo(canvas.getBeatPosition(number))
       }
 
@@ -102,7 +102,7 @@ composer.cursor = (function () {
   return {
     init: init
   , setBpm: setBpm
-  , setToFrame: setToFrame
+  , setToTick: setToTick
   , start: start
   , stop: stop
   }

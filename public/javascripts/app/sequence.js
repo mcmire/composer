@@ -4,7 +4,7 @@ window.composer || (window.composer = {})
 
 composer.Sequence = function Sequence(main) {
   var tracks = []
-    , frames = []
+    , cellsByTick = []
 
     , getMain = function() {
         return main
@@ -27,24 +27,47 @@ composer.Sequence = function Sequence(main) {
         return tracks.length
       }
 
-    , addNoteEventToFrame = function (frameIndex, noteEvent) {
-        if (!(frameIndex in frames)) {
-          frames[frameIndex] = []
-        }
-        frames[frameIndex].push(noteEvent)
+    , addCell = function (tickNo, cell) {
+        (cellsByTick[tickNo] || (cellsByTick[tickNo] = [])).push(cell)
       }
 
-    , eachFrame = function (fn) {
-        $.v.each(frames, fn)
+    , eachTick = function (fn) {
+        $.v.each(cellsByTick, fn)
+      }
+
+    , findTrack = function (trackIndex) {
+        return tracks[trackIndex]
+      }
+
+    , findCell = function (trackIndex, cellIndex) {
+        var track = findTrack(trackId)
+        return (track && track.findCell(cellIndex))
+      }
+
+    , toggleCellGoalState = function (trackIndex, cellIndex) {
+        var track = findTrack(trackIndex)
+          , cell = (track && track.findCell(cellIndex))
+        cell && cell.toggleGoalState()
+      }
+
+    , toStore = function () {
+        var tracks_ = $.v.map(tracks, function (track) {
+          return track.toStore()
+        })
+        return {
+          tracks: tracks_
+        }
       }
 
   $.v.extend(this, {
     getMain: getMain
   , addTrack: addTrack
-  , tracks: tracks
   , eachTrack: eachTrack
   , getNumTracks: getNumTracks
-  , addNoteEventToFrame: addNoteEventToFrame
-  , eachFrame: eachFrame
+  , addCell: addCell
+  , eachTick: eachTick
+  , findCell: findCell
+  , toggleCellGoalState: toggleCellGoalState
+  , toStore: toStore
   })
 }
