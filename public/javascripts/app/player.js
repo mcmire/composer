@@ -19,9 +19,6 @@ composer.player = (function () {
         sequence = _sequence
       }
 
-      // FIXME: when all audio events have been played, state should be set to
-      // stopped so that pressing play starts immediately
-      // base this off of time - no callbacks
     , start = function () {
         var currentTick = main.getCurrentTick()
           , startTime = audio.getAudioContext().currentTime

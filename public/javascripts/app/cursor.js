@@ -47,26 +47,13 @@ composer.cursor = (function () {
           now = (new Date()).getTime()
           // map pct time to pct pixels
           elapsedTimeSoFar = now - startTime
-          /*
-          if (elapsedTimeSoFar >= finishElapsedTime) {
-            setToEnd()
-            return
-          }
-          */
           pctComplete = elapsedTimeSoFar / finishElapsedTime
           if (pctComplete >= 1) {
             pctComplete = 1
           }
           distanceSoFar = pctComplete * finishDistance
-          /*
-          if (distanceSoFar >= finishDistance) {
-            setToEnd()
-            isRunning = false
-          } else {
-          */
-            moveTo(distanceSoFar)
-            return timer = window.webkitRequestAnimationFrame(render)
-          /*}*/
+          moveTo(distanceSoFar)
+          timer = window.webkitRequestAnimationFrame(render)
         }
       }
 
@@ -74,8 +61,6 @@ composer.cursor = (function () {
         return isRunning
       }
 
-      // FIXME: when all audio events have been played, state should be set to
-      // stopped so that pressing play starts immediately
     , start = function () {
         startTime = (new Date()).getTime()
         isRunning = true
