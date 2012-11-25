@@ -7,7 +7,6 @@ composer.player = (function () {
 
     , main
     , sequence
-    , startTick
     , scheduledAudioEvents
 
     , init = function (_main) {
@@ -22,11 +21,14 @@ composer.player = (function () {
 
       // FIXME: when all audio events have been played, state should be set to
       // stopped so that pressing play starts immediately
+      // base this off of time - no callbacks
     , start = function () {
-        var startTime = audio.getAudioContext().currentTime
+        var currentTick = main.getCurrentTick()
+          , startTime = audio.getAudioContext().currentTime
+
         removeFinishedAudioEvents()
         sequence.eachTick(function (cells, tickIndex) {
-          if (tickIndex < startTick) { return }
+          if (tickIndex < currentTick) { return }
           var time = startTime + main.ticksToTime(tickIndex)
             , tickAudioEvent
           $.v.each(cells, function (cell) {
@@ -52,7 +54,6 @@ composer.player = (function () {
         $.v.each(scheduledAudioEvents, function (audioEvent) {
           audioEvent.stop()
         })
-        startTick = 0
       }
 
     , removeFinishedAudioEvents = function () {
@@ -65,15 +66,10 @@ composer.player = (function () {
         scheduledAudioEvents = newScheduledAudioEvents
       }
 
-    , setToTick = function (tickIndex) {
-        startTick = tickIndex
-      }
-
   return {
     init: init
   , setSequence: setSequence
   , start: start
   , stop: stop
-  , setToTick: setToTick
   }
 })()

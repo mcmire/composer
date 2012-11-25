@@ -10,7 +10,8 @@ composer.Sequence = function Sequence(main) {
         return main
       }
 
-    , setBpm = function(bpm) {
+    , getDurationInTicks = function() {
+        return cellsByTick.length
       }
 
     , addTrack = function (sample) {
@@ -61,6 +62,7 @@ composer.Sequence = function Sequence(main) {
 
   $.v.extend(this, {
     getMain: getMain
+  , getDurationInTicks: getDurationInTicks
   , addTrack: addTrack
   , eachTrack: eachTrack
   , getNumTracks: getNumTracks

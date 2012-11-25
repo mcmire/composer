@@ -39,7 +39,7 @@ composer.canvas = (function () {
         return cursor
       }
 
-    , getBeatPosition = function (index) {
+    , getTickPosition = function (index) {
         var pos
         if (index === 'last') {
           index = numberOfTicks
@@ -135,7 +135,7 @@ composer.canvas = (function () {
     init: init
   , getMain: getMain
   , getCursor: getCursor
-  , getBeatPosition: getBeatPosition
+  , getTickPosition: getTickPosition
   , setSequence: setSequence
   , addEvents: addEvents
   , removeEvents: removeEvents

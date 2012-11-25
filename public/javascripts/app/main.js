@@ -11,6 +11,7 @@ composer.main = (function () {
     , canvas
     , cursor
     , player
+    , autoStopTimer
     , currentSequence
     , isRunning
     , currentTick
@@ -45,6 +46,10 @@ composer.main = (function () {
         return isRunning
       }
 
+    , getCurrentTick = function () {
+        return currentTick
+      }
+
     , setBpm = function (_bpm) {
         bpm = _bpm
         // ex: 120 bpm is 120 beats / 60 seconds or 0.5 per beat
@@ -69,15 +74,21 @@ composer.main = (function () {
       }
 
     , start = function () {
+        setToStart()
+        var durationInTime = ticksToTime(currentSequence.getDurationInTicks())
         isRunning = true
         player.start()
         cursor.start()
+        // add 300ms so the sound doesn't cut off
+        autoStopTimer = setTimeout(function() { stop() }, (durationInTime * 1000) + 300)
       }
 
     , stop = function () {
+        autoStopTimer && clearTimeout(autoStopTimer)
         isRunning = false
         player.stop()
         cursor.stop()
+        setToStart()
       }
 
     , toggle = function () {
@@ -85,28 +96,24 @@ composer.main = (function () {
       }
 
     , setToTick = function (number) {
-        player.setToTick(number)
-        cursor.setToTick(number)
+        currentTick = number
+        cursor.update()
       }
 
     , nextTick = function (number) {
-        currentTick = (currentTick + 1) % (NUMBER_OF_TICKS + 1)
-        setToTick(currentTick)
+        setToTick((currentTick + 1) % (NUMBER_OF_TICKS + 1))
       }
 
     , prevTick = function (number) {
-        currentTick = currentTick === 0 ? NUMBER_OF_TICKS : currentTick - 1
-        setToTick(currentTick)
+        setToTick(currentTick === 0 ? NUMBER_OF_TICKS : currentTick - 1)
       }
 
     , setToStart = function () {
-        currentTick = 0
-        setToTick(currentTick)
+        setToTick(0)
       }
 
     , setToEnd = function () {
-        currentTick = NUMBER_OF_TICKS
-        setToTick(currentTick)
+        setToTick(NUMBER_OF_TICKS)
       }
 
     , loadNewSequence = function () {
@@ -168,6 +175,7 @@ composer.main = (function () {
   return {
     init: init
   , getCurrentSequence: getCurrentSequence
+  , getCurrentTick: getCurrentTick
   , numberOfTicks: NUMBER_OF_TICKS
   , ticksToTime: ticksToTime
   }
