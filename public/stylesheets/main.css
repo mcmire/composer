@@ -5,7 +5,7 @@
 
 body {
   font-family: Helvetica;
-  font-size: 18px;
+  font-size: 18pt;
   margin: 20px;
 }
 
@@ -14,7 +14,6 @@ body {
   /*margin: 0 auto;*/
   text-align: center;
   letter-spacing: -1px;
-  font-size: 30px;
 }
 
 a {
@@ -23,9 +22,16 @@ a {
 
 #canvas {
   margin: 0 auto;
-  position: relative;
-  /*width: 640px;*/
   padding: 10px 0;
+}
+
+#board, #labels {
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+#board {
+  position: relative;
 }
 
 #cursor {
@@ -40,21 +46,22 @@ a {
   /*display: none;*/
 }
 
-#board {
+#labels, #board, .cell {
+  display: inline-block;
+}
+#labels, #board {
+  vertical-align: top;
 }
 
-.track {
-  /*height: 32px;*/
-  /*margin-bottom: 8px;*/
+.label {
+  text-align: right;
+  position: relative;
+  top: 1px
 }
 
 .cell {
-  /*width: 32px;*/
-  /*height: 32px;*/
   border: 2px solid silver;
   cursor: pointer;
-  display: inline-block;
-  /*margin-right: 8px;*/
   position: relative;
 }
 .cell > div {
@@ -68,8 +75,6 @@ a {
   display: none;
 }
 .cell.on {
-  /*border-color: hsla(200,100%,40%,1);*/
-  /*background-color: hsla(200,100%,50%,1);*/
   border-color: black;
   background-color: black;
 }
@@ -93,7 +98,7 @@ a {
 
 #actions a {
   padding-right: 30px;
-  font-size: 150%;
+  font-size: 25pt;
   font-weight: bold;
   text-decoration: none;
   opacity: 0.5;

@@ -10,21 +10,25 @@ composer.canvas = (function () {
     , numberOfTicks
     , $elem
     , $board
+    , $labels
+    , $cells
     , cursor
 
     , init = function (_main) {
         main = _main
         numberOfTicks = main.numberOfTicks
-        $elem = $('#canvas').css({
-          width: (CELL_SIZE + CELL_PADDING) * numberOfTicks
+        $elem = $('#canvas')
+        $board = $('#board').css({
+          width: (CELL_SIZE + CELL_PADDING) * main.numberOfTicks
         })
-        $board = $('#board')
+        $labels = $('#labels')
+        $cells = $('#cells')
         cursor = composer.cursor.init(this)
         return this
       }
 
     , setSequence = function (sequence) {
-        populateBoard(sequence)
+        renderSequence(sequence)
       }
 
     , getMain = function () {
@@ -49,10 +53,15 @@ composer.canvas = (function () {
         return pos
       }
 
-    , populateBoard = function (sequence) {
-        $board.html("")
+    , renderSequence = function (sequence) {
+        $labels.html("")
+        $cells.html("")
+
         sequence.eachTrack(function (track, trackIndex) {
-          var $track = $('<div class="track">')
+          var $label = $('<div class="label">')
+            , $track = $('<div class="track">')
+
+          $track
             .data('idx', trackIndex)
             .css({height: CELL_SIZE})
           if (trackIndex === sequence.getNumTracks()-1) {
@@ -60,6 +69,17 @@ composer.canvas = (function () {
           } else {
             $track.css({'margin-bottom': CELL_PADDING})
           }
+
+          $label
+            .text(track.getSampleName())
+            .css({
+              width: CELL_SIZE*2
+            , height: CELL_SIZE
+            , 'margin-bottom': CELL_PADDING
+            , 'margin-right': CELL_PADDING*2
+            })
+          $labels.append($label)
+
           track.eachCell(function (cell, cellIndex) {
             var $cell = $('<div class="cell"><div></div></div>')
               .data('track-idx', trackIndex)
@@ -70,21 +90,21 @@ composer.canvas = (function () {
                 'margin-right': CELL_PADDING
               })
             if (cell.isOn) {
-              $cell.addClass('on')
+              $cell.addClass('on').find('> div').append("✗")
+            } else {
+              $cell.find('> div').append("✓")
             }
             if (cellIndex === track.getNumCells()-1) {
               $cell.addClass('last')
             }
             $track.append($cell)
           })
-          $board.append($track)
+          $cells.append($track)
         })
-        $board.find('.cell:not(.on) > div').append("✓")
-        $board.find('.cell.on > div').append("✗")
       }
 
     , addEvents = function () {
-        $board
+        $cells
           .on('click.composer.canvas', '.cell', function () {
             var $cell = $(this)
               , trackIndex = $cell.data('track-idx')
@@ -108,7 +128,7 @@ composer.canvas = (function () {
       }
 
     , removeEvents = function() {
-        $board.off('.composer.canvas')
+        $cells.off('.composer.canvas')
       }
 
   return {

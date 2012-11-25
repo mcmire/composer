@@ -4,7 +4,7 @@ window.composer || (window.composer = {})
 
 // This is the controller
 composer.main = (function () {
-  var TRACKS = ['kick']
+  var TRACKS = ['snare', 'kick']
     , NUMBER_OF_TICKS = 16
     , TICK_LENGTH = 1 / NUMBER_OF_TICKS
 

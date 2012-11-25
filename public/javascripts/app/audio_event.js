@@ -17,7 +17,7 @@ composer.AudioEvent = function(noteEvent) {
     , scheduleAt = function (time, durationInTime) {
         if (noteEvent.isOn) {
           startAt(time)
-          stopAt(time + durationInTime)
+          //stopAt(time + durationInTime)
         } else {
           stopAt(time)
         }
