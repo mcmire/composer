@@ -5,26 +5,31 @@ window.composer || (window.composer = {})
 // You should only create one of these objects if you are about to schedule a
 // note event -- do not keep the object around in memory
 //
-composer.AudioEvent = function(noteEvent) {
+composer.AudioEvent = function(cell) {
   var audio = composer.audio
-    , sample = audio.lookupSample(noteEvent.getSampleName())
+    , sample = audio.lookupSample(cell.getSampleName())
+    // TODO: connect each track's cells to a different gain node
     , audioNode = audio.connectNewSample(sample)
 
     , getDurationInTicks = function() {
-        return noteEvent.durationInTicks
+        return cell.durationInTicks
+      }
+
+    , getDurationInTime = function () {
+        return main.ticksToTime(cell.durationInTicks)
       }
 
     , scheduleAt = function (time, durationInTime) {
-        if (noteEvent.isOn) {
+        if (cell.isOn) {
           startAt(time)
-          //stopAt(time + durationInTime)
+          durationInTime && stopAt(time + durationInTime)
         } else {
           stopAt(time)
         }
       }
 
     , stop = function () {
-        noteEvent.isOn && stopAt(0)
+        cell.isOn && stopAt(0)
       }
 
     , startAt = function (time) {

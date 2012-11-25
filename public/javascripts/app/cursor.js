@@ -70,6 +70,8 @@ composer.cursor = (function () {
         return isRunning
       }
 
+      // FIXME: when all audio events have been played, state should be set to
+      // stopped so that pressing play starts immediately
     , start = function () {
         setToStart()
         startTime = (new Date()).getTime()

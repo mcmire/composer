@@ -5,7 +5,7 @@ window.composer || (window.composer = {})
 composer.audio = (function () {
   var util = composer.util
 
-    , SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare']
+    , SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare', 'tick']
 
     , samplesByName
     , isLoaded = false

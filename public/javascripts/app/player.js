@@ -20,18 +20,28 @@ composer.player = (function () {
         sequence = _sequence
       }
 
+      // FIXME: when all audio events have been played, state should be set to
+      // stopped so that pressing play starts immediately
     , start = function () {
         var startTime = audio.getAudioContext().currentTime
         removeFinishedAudioEvents()
-        sequence.eachTick(function (noteEvents, tickIndex) {
+        sequence.eachTick(function (cells, tickIndex) {
           if (tickIndex < startTick) { return }
           var time = startTime + main.ticksToTime(tickIndex)
-          $.v.each(noteEvents, function (noteEvent) {
-            var audioEvent = new composer.AudioEvent(noteEvent)
-              , durationInTime = main.ticksToTime(audioEvent.getDurationInTicks())
-            audioEvent.scheduleAt(time, durationInTime)
+            , tickAudioEvent
+          $.v.each(cells, function (cell) {
+            var audioEvent = new composer.AudioEvent(cell)
+            audioEvent.scheduleAt(time)
             scheduledAudioEvents.push(audioEvent)
           })
+          if ((tickIndex % 2) === 0) {
+            tickAudioEvent = new composer.AudioEvent({
+              isOn: true
+            , getSampleName: function () { return 'tick' }
+            })
+            tickAudioEvent.scheduleAt(time, 0.1)
+            scheduledAudioEvents.push(tickAudioEvent)
+          }
         })
       }
 
