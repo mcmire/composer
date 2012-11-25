@@ -37,7 +37,9 @@ composer.player = (function () {
           if ((tickIndex % 2) === 0) {
             tickAudioEvent = new composer.AudioEvent({
               isOn: true
-            , getSampleName: function () { return 'tick' }
+            , getSampleName: function () {
+                return tickIndex == 0 ? 'ticd' : 'ticu'
+              }
             })
             tickAudioEvent.scheduleAt(time, 0.1)
             scheduledAudioEvents.push(tickAudioEvent)
