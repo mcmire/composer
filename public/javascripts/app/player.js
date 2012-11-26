@@ -30,9 +30,12 @@ composer.player = (function () {
             var tickAudioEvent
             if (tickIndex >= currentTick) {
               $.v.each(cells, function (cell) {
-                var audioEvent = new composer.AudioEvent(cell)
-                audioEvent.scheduleAt(time)
-                scheduledAudioEvents.push(audioEvent)
+                var audioEvent
+                if (cell.isOn) {
+                  audioEvent = new composer.AudioEvent(cell)
+                  audioEvent.scheduleAt(time)
+                  scheduledAudioEvents.push(audioEvent)
+                }
               })
               if ((tickIndex % 2) === 0) {
                 tickAudioEvent = new composer.AudioEvent({
