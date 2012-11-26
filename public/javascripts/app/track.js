@@ -60,7 +60,8 @@ composer.Track = (function() {
         }
 
     $.v.extend(this, {
-      getSequence: getSequence
+      _cells: cells   // for debugging purposes
+    , getSequence: getSequence
     , getSampleName: getSampleName
     , addOnCell: addOnCell
     , addOffCell: addOffCell

@@ -33,7 +33,11 @@ composer.Sequence = function Sequence(main) {
       }
 
     , eachTick = function (fn) {
-        $.v.each(cellsByTick, fn)
+        var i = 0
+        while (i < getDurationInTicks()) {
+          fn(cellsByTick[i] || [], i)
+          i++
+        }
       }
 
     , findTrack = function (trackIndex) {
@@ -61,7 +65,8 @@ composer.Sequence = function Sequence(main) {
       }
 
   $.v.extend(this, {
-    getMain: getMain
+    _tracks: tracks   // for debugging purposes
+  , getMain: getMain
   , getDurationInTicks: getDurationInTicks
   , addTrack: addTrack
   , eachTrack: eachTrack

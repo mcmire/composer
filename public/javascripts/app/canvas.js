@@ -19,7 +19,7 @@ composer.canvas = (function () {
         numberOfTicks = main.numberOfTicks
         $elem = $('#canvas')
         $board = $('#board').css({
-          width: (CELL_SIZE + CELL_PADDING) * main.numberOfTicks
+          width: CELL_SIZE * main.numberOfTicks
         })
         $labels = $('#labels')
         $cells = $('#cells')
@@ -44,12 +44,7 @@ composer.canvas = (function () {
         if (index === 'last') {
           index = numberOfTicks
         }
-        pos = (CELL_SIZE + CELL_PADDING) * (index - 1)
-        if (index == numberOfTicks) {
-          pos += CELL_SIZE
-        } else {
-          pos += CELL_SIZE + CELL_PADDING
-        }
+        pos = CELL_SIZE * index
         return pos
       }
 
@@ -85,18 +80,25 @@ composer.canvas = (function () {
               .data('track-idx', trackIndex)
               .data('idx', cellIndex)
               .css({
-                width: CELL_SIZE,
-                height: CELL_SIZE,
-                'margin-right': CELL_PADDING
+                width: CELL_SIZE * cell.durationInTicks
+              , height: CELL_SIZE
               })
             if (cell.isOn) {
               $cell.addClass('on').find('> div').append("✗")
             } else {
               $cell.find('> div').append("✓")
             }
+            if (cellIndex === 0) {
+              $cell.addClass('first')
+            }
             if (cellIndex === track.getNumCells()-1) {
               $cell.addClass('last')
             }
+            /*
+            else {
+              $cell.css({ 'margin-right': CELL_PADDING })
+            }
+            */
             $track.append($cell)
           })
           $cells.append($track)

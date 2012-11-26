@@ -168,10 +168,27 @@ composer.util = (function () {
         }
       }
 
+    , random = {
+        // https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Math/random
+        float: function(min, max) {
+          return Math.random() * (max - min) + min
+        }
+
+      , bit: function() {
+          return random.int(0, 1)
+        }
+
+        // https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Math/random
+      , int: function(min, max) {
+          return Math.floor(Math.random() * (max - min + 1)) + min
+        }
+      }
+
   return {
     audio: audio
   , arr: arr
   , is: is
   , obj: obj
+  , random: random
   }
 })()

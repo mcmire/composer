@@ -4,7 +4,9 @@ window.composer || (window.composer = {})
 
 // This is the controller
 composer.main = (function () {
-  var TRACKS = ['snare', 'kick']
+  var util = composer.util
+
+    , TRACKS = ['snare', 'kick']
     , NUMBER_OF_TICKS = 16
     , TICK_LENGTH = 1 / NUMBER_OF_TICKS
 
@@ -119,10 +121,18 @@ composer.main = (function () {
     , loadNewSequence = function () {
         var sequence = new composer.Sequence(this)
         $.v.each(TRACKS, function (sample) {
-          var j
-            , track = sequence.addTrack(sample)
-          for (j = 0; j < NUMBER_OF_TICKS; j++) {
-            track.addCell(1, Math.round(Math.random()) === 0)
+          var track = sequence.addTrack(sample)
+            , totalNumberOfTicks = NUMBER_OF_TICKS
+            , durationInTicks
+            , isOn
+          while (totalNumberOfTicks > 0) {
+            while (true) {
+              durationInTicks = util.random.int(1, 4)
+              if (durationInTicks <= totalNumberOfTicks) { break }
+            }
+            isOn = (isOn === undefined ? util.random.bit() : !isOn)
+            track.addCell(durationInTicks, isOn)
+            totalNumberOfTicks -= durationInTicks
           }
         })
         setSequence(sequence)

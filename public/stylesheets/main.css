@@ -60,9 +60,20 @@ a {
 }
 
 .cell {
-  border: 2px solid silver;
+  border-style: solid;
+  border-color: silver;
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+  border-left-width: 0px;
+  border-right-width: 0px;
   cursor: pointer;
   position: relative;
+}
+.cell.first {
+  border-left-width: 1px;
+}
+.cell.last {
+  border-right-width: 1px;
 }
 .cell > div {
   font-size: 24px;
