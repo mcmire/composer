@@ -29,6 +29,7 @@ composer.canvas = (function () {
 
     , setSequence = function (sequence) {
         renderSequence(sequence)
+        cursor.setSequence(sequence)
       }
 
     , getMain = function () {

@@ -29,7 +29,7 @@ composer.AudioEvent = function(cell) {
       }
 
     , stop = function () {
-        cell.isOn && stopAt(0)
+        cell.isOn && !isPlaying() && stopAt(0)
       }
 
     , startAt = function (time) {
@@ -45,7 +45,13 @@ composer.AudioEvent = function(cell) {
       }
 
     , isFinished = function () {
+        // https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html#AudioBufferSourceNode
         return audioNode.playbackState == 3
+      }
+
+    , isPlaying = function () {
+        // https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html#AudioBufferSourceNode
+        return audioNode.playbackState == 2
       }
 
   $.v.extend(this, {

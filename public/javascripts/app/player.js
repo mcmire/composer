@@ -21,29 +21,34 @@ composer.player = (function () {
 
     , start = function () {
         var currentTick = main.getCurrentTick()
-          , startTime = audio.getAudioContext().currentTime
+          , time = audio.getAudioContext().currentTime
+          , i = 0
 
         removeFinishedAudioEvents()
-        sequence.eachTick(function (cells, tickIndex) {
-          if (tickIndex < currentTick) { return }
-          var time = startTime + main.ticksToTime(tickIndex)
-            , tickAudioEvent
-          $.v.each(cells, function (cell) {
-            var audioEvent = new composer.AudioEvent(cell)
-            audioEvent.scheduleAt(time)
-            scheduledAudioEvents.push(audioEvent)
-          })
-          if ((tickIndex % 2) === 0) {
-            tickAudioEvent = new composer.AudioEvent({
-              isOn: true
-            , getSampleName: function () {
-                return tickIndex === 0 ? 'ticd' : 'ticu'
+        while (i < main.getNumberOfIterations()) {
+          sequence.eachTick(function (cells, tickIndex) {
+            var tickAudioEvent
+            if (tickIndex >= currentTick) {
+              $.v.each(cells, function (cell) {
+                var audioEvent = new composer.AudioEvent(cell)
+                audioEvent.scheduleAt(time)
+                scheduledAudioEvents.push(audioEvent)
+              })
+              if ((tickIndex % 2) === 0) {
+                tickAudioEvent = new composer.AudioEvent({
+                  isOn: true
+                , getSampleName: function () {
+                    return tickIndex === 0 ? 'ticd' : 'ticu'
+                  }
+                })
+                tickAudioEvent.scheduleAt(time, 0.1)
+                scheduledAudioEvents.push(tickAudioEvent)
               }
-            })
-            tickAudioEvent.scheduleAt(time, 0.1)
-            scheduledAudioEvents.push(tickAudioEvent)
-          }
-        })
+            }
+            time += main.ticksToTime(1)
+          })
+          i++
+        }
       }
 
     , stop = function () {

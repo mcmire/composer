@@ -9,6 +9,7 @@ composer.cursor = (function () {
     , elem
     , numberOfTicks
     , finishDistance
+    , bpm
     , startTime
     , timer
     , render
@@ -26,9 +27,13 @@ composer.cursor = (function () {
         return this
       }
 
-    , setBpm = function (bpm) {
+    , setBpm = function (_bpm) {
+        bpm = _bpm
+      }
+
+    , setSequence = function (sequence) {
         var secondsPerBeat = 60 / bpm
-          , finishElapsedTime = secondsPerBeat * 1000
+          , finishElapsedTime = main.ticksToTime(sequence.getDurationInTicks()) * 1000
 
         render = function () {
           var distanceSoFar,
@@ -47,6 +52,10 @@ composer.cursor = (function () {
           now = (new Date()).getTime()
           // map pct time to pct pixels
           elapsedTimeSoFar = now - startTime
+          if (elapsedTimeSoFar > finishElapsedTime) {
+            startTime += finishElapsedTime
+            elapsedTimeSoFar = now - startTime
+          }
           pctComplete = elapsedTimeSoFar / finishElapsedTime
           if (pctComplete >= 1) {
             pctComplete = 1
@@ -83,6 +92,7 @@ composer.cursor = (function () {
   return {
     init: init
   , setBpm: setBpm
+  , setSequence: setSequence
   , start: start
   , stop: stop
   , update: update

@@ -8,7 +8,8 @@ composer.main = (function () {
 
     , TRACKS = ['snare', 'kick']
     , NUMBER_OF_TICKS = 16
-    , TICK_LENGTH = 1 / NUMBER_OF_TICKS
+    , TICK_DURATION_IN_BEATS = 1 / NUMBER_OF_TICKS
+    , NUMBER_OF_ITERATIONS = 4
 
     , canvas
     , cursor
@@ -52,11 +53,15 @@ composer.main = (function () {
         return currentTick
       }
 
+    , getNumberOfIterations = function () {
+        return NUMBER_OF_ITERATIONS
+      }
+
     , setBpm = function (_bpm) {
         bpm = _bpm
         // ex: 120 bpm is 120 beats / 60 seconds or 0.5 per beat
         spb = 60 / bpm
-        secondsPerTick = (TICK_LENGTH / bpm) * 60
+        secondsPerTick = (TICK_DURATION_IN_BEATS / bpm) * 60
         cursor.setBpm(bpm)
       }
 
@@ -77,12 +82,14 @@ composer.main = (function () {
 
     , start = function () {
         setToStart()
-        var durationInTime = ticksToTime(currentSequence.getDurationInTicks())
+        var durationInTime =
+          ticksToTime(currentSequence.getDurationInTicks()) *
+          getNumberOfIterations()
         isRunning = true
         player.start()
         cursor.start()
         // add 300ms so the sound doesn't cut off
-        autoStopTimer = setTimeout(function() { stop() }, (durationInTime * 1000) + 300)
+        autoStopTimer = setTimeout(function() { stop() }, durationInTime * 1000)
       }
 
     , stop = function () {
@@ -186,6 +193,7 @@ composer.main = (function () {
     init: init
   , getCurrentSequence: getCurrentSequence
   , getCurrentTick: getCurrentTick
+  , getNumberOfIterations: getNumberOfIterations
   , numberOfTicks: NUMBER_OF_TICKS
   , ticksToTime: ticksToTime
   }
