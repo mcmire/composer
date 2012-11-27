@@ -7,7 +7,9 @@ There isn't a whole lot here at the moment, look at the TODO if you are
 interested in what's down the road.
 
 
-## Prerequisites
+## Getting started
+
+### Prerequisites
 
 You will need:
 
@@ -22,8 +24,7 @@ Next, install MongoDB. Again, on OS X:
 
     brew install mongodb
 
-
-## Bootstrapping
+### Installing
 
 Next, clone this repo:
 
@@ -37,7 +38,7 @@ This will install the npm packages necessary to run this app, within a
 local node_modules directory.
 
 
-## Running the app
+## Running
 
 If MongoDB is not running yet, run:
 
@@ -48,6 +49,16 @@ To run the app, say:
     make server
 
 Now go to http://localhost:5010 in your browser.
+
+
+## Architecture
+
+* [Express](http://expressjs.com/) (i.e. node.js) to serve files and provide
+  backend logic
+* [Ender.js](http://ender.jit.su/) (domReady, Valentine, Qwery, Bean, Bonzo,
+  Reqwest) for frontend behavior
+* [Web Audio API](https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html)
+  to play the audio samples
 
 
 ## Author/Copyright
