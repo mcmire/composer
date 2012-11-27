@@ -1,30 +1,38 @@
 
-var express = require('express')
-  , app = express()
-  , port = 5010
-  , mongodb = require('mongodb')
-  , mongoserver = new mongodb.Server('127.0.0.1', mongodb.Connection.DEFAULT_PORT,
-                                     {auto_reconnect: true})
-  , dbconn = new mongodb.Db('composer', mongoserver, {safe: false})
+var util = require('util')
+  , connectToDatabase = function(fn) {
+      var mongodb = require('mongodb')
+        , databaseUrl = process.env['MONGOLAB_URI'] || ('mongodb://localhost:' + mongodb.Connection.DEFAULT_PORT + '/composer')
 
-dbconn.open(function(err, db) {
-  if (err) {
-    console.log("Error opening Mongo connection: " + err.message)
-  }
-  else {
-    app.use(express.static('public'))
-    app.use(express.bodyParser())
+      mongodb.Db.connect(databaseUrl, function(err, db) {
+        if (err) {
+          console.error("Couldn't connect to MongoDB: " + err.message)
+        } else {
+          fn(db)
+        }
+      })
+    }
 
-    app.post('/sequences', function(req, res) {
-      var sequence = req.body
-        , coll = db.collection('sequences')
-      sequence.created_at = (new Date()).toISOString()
-      coll.insert(sequence)
-      res.send(200)
+connectToDatabase(function(db) {
+  var express = require('express')
+    , app = express()
+    , appPort = 5010
+
+  app.use(express.static('public'))
+  app.use(express.bodyParser())
+
+  app.post('/sequences', function(req, res) {
+    var coll = db.collection('sequences')
+      , sequence = req.body
+    sequence.created_at = (new Date()).toISOString()
+    db.insert(sequence, function (err, saved) {
+      if (err) {
+        console.error("Saving sequence failed: " + err)
+      }
     })
+    res.send(200)
+  })
 
-    app.listen(port)
-    console.log('== Composer is listening on port ' + port + '.')
-  }
+  app.listen(appPort)
+  console.log('== Composer is listening on port ' + appPort + '.')
 })
-
