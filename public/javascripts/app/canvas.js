@@ -71,6 +71,7 @@ composer.canvas = (function () {
             .css({
               width: CELL_SIZE*2
             , height: CELL_SIZE
+            , 'line-height': CELL_SIZE + 'px'
             , 'margin-bottom': CELL_PADDING
             , 'margin-right': CELL_PADDING*2
             })
@@ -95,11 +96,6 @@ composer.canvas = (function () {
             if (cellIndex === track.getNumCells()-1) {
               $cell.addClass('last')
             }
-            /*
-            else {
-              $cell.css({ 'margin-right': CELL_PADDING })
-            }
-            */
             $track.append($cell)
           })
           $cells.append($track)

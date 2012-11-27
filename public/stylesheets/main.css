@@ -4,16 +4,16 @@
 }
 
 body {
-  font-family: Helvetica;
-  font-size: 18pt;
+  font-family: "Helvetica Neue";
+  font-size: 12pt;
   margin: 20px;
 }
 
 #wrapper {
-  /*width: 600px;*/
-  /*margin: 0 auto;*/
+  width: 700px;
+  margin: 0 auto;
   text-align: center;
-  letter-spacing: -1px;
+  /*letter-spacing: -1px;*/
 }
 
 a {
@@ -23,6 +23,10 @@ a {
 #canvas {
   margin: 0 auto;
   padding: 10px 0;
+}
+
+#labels {
+  font-size: 16pt;
 }
 
 #board, #labels {
