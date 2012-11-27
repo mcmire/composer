@@ -16,7 +16,7 @@ var util = require('util')
 connectToDatabase(function(db) {
   var express = require('express')
     , app = express()
-    , appPort = process.env.PORT || 5010
+    , appPort = process.env.PORT
 
   app.use(express.static('public'))
   app.use(express.bodyParser())
