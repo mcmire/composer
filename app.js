@@ -16,7 +16,7 @@ var util = require('util')
 connectToDatabase(function(db) {
   var express = require('express')
     , app = express()
-    , appPort = 5010
+    , appPort = process.env.PORT || 5010
 
   app.use(express.static('public'))
   app.use(express.bodyParser())
@@ -33,6 +33,7 @@ connectToDatabase(function(db) {
     res.send(200)
   })
 
-  app.listen(appPort)
-  console.log('== Composer is listening on port ' + appPort + '.')
+  app.listen(appPort, function () {
+    console.log('== Composer is listening on port ' + appPort + '.')
+  })
 })
