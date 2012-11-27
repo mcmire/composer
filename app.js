@@ -25,7 +25,7 @@ connectToDatabase(function(db) {
     var coll = db.collection('sequences')
       , sequence = req.body
     sequence.created_at = (new Date()).toISOString()
-    db.insert(sequence, function (err, saved) {
+    coll.insert(sequence, function (err, saved) {
       if (err) {
         console.error("Saving sequence failed: " + err)
       }
