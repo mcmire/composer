@@ -7,8 +7,7 @@ composer.audio = (function () {
 
     , SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare', 'ticu', 'ticd']
 
-    , $loading = $('.audio-loading')
-    , $loaded = $('.audio-loaded')
+    , $body = $(document.body)
 
     , samplesByName
     , isLoaded = false
@@ -16,12 +15,9 @@ composer.audio = (function () {
     , masterNode
 
     , load = function (fn) {
-        $loading.show()
-        $loaded.hide()
         setupAudioContext()
         loadSamples(function() {
-          $loading.hide()
-          $loaded.show()
+          $body.removeClass('audio-loading')
           fn()
         })
         return this

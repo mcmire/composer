@@ -9,9 +9,11 @@ body {
   margin: 20px;
 }
 
-.audio-loading {
+body.audio-loading #main {
+  display: none
 }
-.audio-loaded {
+body:not(.audio-loading) #loading {
+  display: none
 }
 
 #wrapper {
