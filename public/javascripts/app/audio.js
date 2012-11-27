@@ -7,14 +7,23 @@ composer.audio = (function () {
 
     , SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare', 'ticu', 'ticd']
 
+    , $loading = $('.audio-loading')
+    , $loaded = $('.audio-loaded')
+
     , samplesByName
     , isLoaded = false
     , audioContext
     , masterNode
 
     , load = function (fn) {
+        $loading.show()
+        $loaded.hide()
         setupAudioContext()
-        loadSamples(fn)
+        loadSamples(function() {
+          $loading.hide()
+          $loaded.show()
+          fn()
+        })
         return this
       }
 

@@ -9,6 +9,11 @@ body {
   margin: 20px;
 }
 
+.audio-loading {
+}
+.audio-loaded {
+}
+
 #wrapper {
   width: 700px;
   margin: 0 auto;

@@ -5,34 +5,36 @@
 </head>
 <body>
 
-<div id="debug"></div>
-
 <div id="wrapper">
-
-  <p><b>What is this?</b> It's a sequence of beats in time. Every sequence is
-  divided into 16 ticks. Black cells are beats, white cells are rests.
-  The longer the cell, the more time it takes.</p>
-
-  <p><b>What do I do?</b> Press space to play the sequence, press space again to
-  stop. Click on a beat to tell the system that it should be a rest instead.
-  Conversely, click on a rest to tell the system there should be a beat there
-  instead. Then press Next to get a fresh sequence.</p>
-
-  <p><i>(Note: the machine learning part doesn't work yet so for now you can
-  only listen to stuff)</i></p>
-
-  <div id="canvas">
-    <div id="labels"></div>
-    <div id="board">
-      <div id="cursor"></div>
-      <div id="cells"></div>
-    </div>
+  <div class="audio-loading">
+    <p>Loading audio samples, please wait...</p>
   </div>
 
-  <p id="actions">
-    <a href="#" id="next" data-action="next">Next &rarr;</a>
-  </p>
+  <div class="audio-loaded">
+    <p><b>What is this?</b> It's a sequence of beats in time. Every sequence is
+    divided into 16 ticks. Black cells are beats, white cells are rests.
+    The longer the cell, the more time it takes.</p>
 
+    <p><b>What do I do?</b> Press space to play the sequence, press space again to
+    stop. Click on a beat to tell the system that it should be a rest instead.
+    Conversely, click on a rest to tell the system there should be a beat there
+    instead. Then press Next to get a fresh sequence.</p>
+
+    <p><i>(Note: the machine learning part doesn't work yet so for now you can
+    only listen to stuff)</i></p>
+
+    <div id="canvas">
+      <div id="labels"></div>
+      <div id="board">
+        <div id="cursor"></div>
+        <div id="cells"></div>
+      </div>
+    </div>
+
+    <p id="actions">
+      <a href="#" id="next" data-action="next">Next &rarr;</a>
+    </p>
+  </div>
 </div>
 
 <script src="/javascripts/vendor/ender.js"></script>
