@@ -149,6 +149,8 @@ a {
 
 /*----*/
 
+/* courtesy http://unindented.org/articles/2009/10/github-ribbon-using-css-transforms/ */
+
 .github-ribbon {
   background-color: #a00;
   overflow: hidden;
