@@ -42,6 +42,7 @@
 </div>
 
 <script src="/javascripts/vendor/ender.js"></script>
+<script src="/javascripts/app/composer.js"></script>
 <script src="/javascripts/app/util.js"></script>
 <script src="/javascripts/app/audio.js"></script>
 <script src="/javascripts/app/audio_event.js"></script>
@@ -52,10 +53,9 @@
 <script src="/javascripts/app/canvas.js"></script>
 <script src="/javascripts/app/player.js"></script>
 <script src="/javascripts/app/main.js"></script>
-<script src="/javascripts/app/composer.js"></script>
 
 <script>
-  $(window).on('load', function() {
+  ender(window).on('load', function() {
     composer.init({bpm: 20})
   })
 </script>

@@ -1,63 +1,66 @@
 'use strict'
 
-window.composer || (window.composer = {})
-
 // You should only create one of these objects if you are about to schedule a
 // note event -- do not keep the object around in memory
 //
-composer.AudioEvent = function(cell) {
-  var audio = composer.audio
-    , sample = audio.lookupSample(cell.getSampleName())
-    // TODO: connect each track's cells to a different gain node
-    , audioNode = audio.connectNewSample(sample)
+;(function (context) {
+  var composer = context.composer || require('./composer')
+  composer.define('audio_event', function (require, exports, module) {
+    var audio = require('./audio')
+      , main = require('./main')
 
-    , getDurationInTicks = function() {
-        return cell.durationInTicks
-      }
+      , sample = audio.lookupSample(cell.getSampleName())
+      // TODO: connect each track's cells to a different gain node
+      , audioNode = audio.connectNewSample(sample)
 
-    , getDurationInTime = function () {
-        return main.ticksToTime(cell.durationInTicks)
-      }
-
-    , scheduleAt = function (time, durationInTime) {
-        if (cell.isOn) {
-          startAt(time)
-          durationInTime && stopAt(time + durationInTime)
-        } else {
-          stopAt(time)
+      , getDurationInTicks = function() {
+          return cell.durationInTicks
         }
-      }
 
-    , stop = function () {
-        cell.isOn && !isPlaying() && stopAt(0)
-      }
+      , getDurationInTime = function () {
+          return main.ticksToTime(cell.durationInTicks)
+        }
 
-    , startAt = function (time) {
-        // deal with recent changes to the Web Audio API
-        var method = ('start' in audioNode) ? 'start' : 'noteOn'
-        audioNode[method](time)
-      }
+      , scheduleAt = function (time, durationInTime) {
+          if (cell.isOn) {
+            startAt(time)
+            durationInTime && stopAt(time + durationInTime)
+          } else {
+            stopAt(time)
+          }
+        }
 
-    , stopAt = function (time) {
-        // deal with recent changes to the Web Audio API
-        var method = ('stop' in audioNode) ? 'stop' : 'noteOff'
-        audioNode[method](time)
-      }
+      , stop = function () {
+          cell.isOn && !isPlaying() && stopAt(0)
+        }
 
-    , isFinished = function () {
-        // https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html#AudioBufferSourceNode
-        return audioNode.playbackState == 3
-      }
+      , startAt = function (time) {
+          // deal with recent changes to the Web Audio API
+          var method = ('start' in audioNode) ? 'start' : 'noteOn'
+          audioNode[method](time)
+        }
 
-    , isPlaying = function () {
-        // https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html#AudioBufferSourceNode
-        return audioNode.playbackState == 2
-      }
+      , stopAt = function (time) {
+          // deal with recent changes to the Web Audio API
+          var method = ('stop' in audioNode) ? 'stop' : 'noteOff'
+          audioNode[method](time)
+        }
 
-  $.v.extend(this, {
-    getDurationInTicks: getDurationInTicks
-  , scheduleAt: scheduleAt
-  , stop: stop
-  , isFinished: isFinished
+      , isFinished = function () {
+          // https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html#AudioBufferSourceNode
+          return audioNode.playbackState == 3
+        }
+
+      , isPlaying = function () {
+          // https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html#AudioBufferSourceNode
+          return audioNode.playbackState == 2
+        }
+
+    module.exports = {
+      getDurationInTicks: getDurationInTicks
+    , scheduleAt: scheduleAt
+    , stop: stop
+    , isFinished: isFinished
+    }
   })
-}
+})(this)
