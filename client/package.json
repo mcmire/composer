@@ -1,0 +1,14 @@
+{
+  "name": "composer-client"
+, "description": "Client component for the composer project"
+, "version": "0.0.1"
+, "private": true
+, "dependencies": {
+    "domready": "0.2.x"
+  , "qwery": "3.4.x"
+  , "bean": "1.0.x"
+  , "bonzo": "1.3.x"
+  , "reqwest": "0.6.x"
+  }
+}
+

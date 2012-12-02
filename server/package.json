@@ -1,10 +1,11 @@
 {
-  "name": "composer"
-, "description": "Teaching a computer music"
+  "name": "composer-server"
+, "description": "Server component for the composer project"
 , "version": "0.0.1"
 , "private": true
 , "dependencies": {
-    "valentine": "1.5.x"
+    "express": "3.x"
+  , "mongodb": "1.2.x"
   }
 , "devDependencies": {
     "hercules": "0.0.x"

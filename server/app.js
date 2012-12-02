@@ -1,7 +1,13 @@
 
-var util = require('util')
+var path = require('path')
+  , fs = require('fs')
+
   , express = require('express')
-  , Sequence = require('./public/javascripts/app/sequence')
+  , v = require('valentine')
+  , hercules = require('hercules')
+
+  , Sequence = require('../shared/sequence')
+  , util = require('../shared/util')
 
   , connectToDatabase = function(fn) {
       var mongodb = require('mongodb')
@@ -17,18 +23,36 @@ var util = require('util')
     }
 
 connectToDatabase(function(db) {
-  var app = express()
+  var rootDir = path.join(__dirname, '..')
+    , clientDir = path.join(rootDir, 'client')
+    , clientBundle = hercules.bundle(clientDir)
+    , app = express()
     , appPort = process.env.PORT
 
-  app.use(express.static('public'))
+  app.use('/javascripts/shared', express.static(path.join(rootDir, 'shared')))
+  app.use('/javascripts/client', express.static(path.join(rootDir, 'client/javascripts')))
+  app.use('/stylesheets',        express.static(path.join(rootDir, 'client/stylesheets')))
+  app.use('/samples',            express.static(path.join(rootDir, 'client/samples')))
+
   app.use(express.bodyParser())
   app.use(express.logger())
+
+  app.get('/', function (req, res) {
+    var file = path.join(rootDir, 'client/index.html')
+      , html = fs.readFileSync(file, 'utf-8')
+    res.send(html)
+  })
+
+  app.get('/javascripts/client/deps.js', function (req, res) {
+    res.set('Content-Type', 'text/javascript')
+    res.send(clientBundle.toString())
+  })
 
   app.get('/sequences/new', function (req, res) {
     var sequence = new Sequence(this)
       , allStates = ['start', 'end', null]
 
-    $.v.each(main.tracks, function (sampleName) {
+    v.each(main.tracks, function (sampleName) {
       var track = sequence.addTrack(sampleName)
         , tickStates = []
         , possibleStates = util.copy(allStates)
@@ -52,7 +76,7 @@ connectToDatabase(function(db) {
         else if (state === 'end') { isOpen = false }
       }
 
-      $.v.each(tickStates, function (state, i) {
+      v.each(tickStates, function (state, i) {
         if (state === 'start') {
           if (lastStateAt[0] === 'end') {
             track.addOffCell(i - lastStateAt[1]);

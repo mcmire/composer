@@ -41,21 +41,33 @@
   </div>
 </div>
 
-<script src="/javascripts/vendor/ender.js"></script>
-<script src="/javascripts/app/composer.js"></script>
-<script src="/javascripts/app/util.js"></script>
-<script src="/javascripts/app/audio.js"></script>
-<script src="/javascripts/app/audio_event.js"></script>
-<script src="/javascripts/app/sequence.js"></script>
-<script src="/javascripts/app/track.js"></script>
-<script src="/javascripts/app/cell.js"></script>
-<script src="/javascripts/app/cursor.js"></script>
-<script src="/javascripts/app/canvas.js"></script>
-<script src="/javascripts/app/player.js"></script>
-<script src="/javascripts/app/main.js"></script>
+<!--
+<script src="/javascripts/vendor/domready.js"></script>
+<script src="/javascripts/vendor/valentine.js"></script>
+<script src="/javascripts/vendor/qwery.js"></script>
+<script src="/javascripts/vendor/bean.js"></script>
+<script src="/javascripts/vendor/bonzo.js"></script>
+<script src="/javascripts/vendor/reqwest.js"></script>
+-->
+
+<script src="/javascripts/client/deps.js"></script>
+<script src="/javascripts/client/index.js"></script>
+
+<script src="/javascripts/shared/util.js"></script>
+<script src="/javascripts/shared/sequence.js"></script>
+<script src="/javascripts/shared/track.js"></script>
+<script src="/javascripts/shared/note_event.js"></script>
+
+<script src="/javascripts/client/audio.js"></script>
+<script src="/javascripts/client/audio_event.js"></script>
+<script src="/javascripts/client/cell.js"></script>
+<script src="/javascripts/client/cursor.js"></script>
+<script src="/javascripts/client/canvas.js"></script>
+<script src="/javascripts/client/player.js"></script>
+<script src="/javascripts/client/main.js"></script>
 
 <script>
-  ender(window).on('load', function() {
+  bean.on(window, 'load', function() {
     composer.init({bpm: 20})
   })
 </script>
