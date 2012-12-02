@@ -8,7 +8,7 @@
   , "mongodb": "1.2.x"
   }
 , "devDependencies": {
-    "hercules": "0.0.x"
+    "stitch": "0.3.x"
   }
 , "engines": {
     "node": "0.8.x"

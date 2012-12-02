@@ -4,7 +4,7 @@ var path = require('path')
 
   , express = require('express')
   , v = require('valentine')
-  , hercules = require('hercules')
+  , stitch = require('stitch')
 
   , Sequence = require('../shared/sequence')
   , util = require('../shared/util')
@@ -25,7 +25,9 @@ var path = require('path')
 connectToDatabase(function(db) {
   var rootDir = path.join(__dirname, '..')
     , clientDir = path.join(rootDir, 'client')
-    , clientBundle = hercules.bundle(clientDir)
+    , clientPackage = stitch.createPackage({
+        paths: [clientDir]
+      })
     , app = express()
     , appPort = process.env.PORT
 
@@ -43,10 +45,7 @@ connectToDatabase(function(db) {
     res.send(html)
   })
 
-  app.get('/javascripts/client/deps.js', function (req, res) {
-    res.set('Content-Type', 'text/javascript')
-    res.send(clientBundle.toString())
-  })
+  app.get('/javascripts/client/deps.js', clientPackage.createServer())
 
   app.get('/sequences/new', function (req, res) {
     var sequence = new Sequence(this)

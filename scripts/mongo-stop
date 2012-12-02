@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if pkill mongod; then
+  echo "Stopped MongoDB."
+else
+  echo "Couldn't stop MongoDB for some reason?!"
+fi

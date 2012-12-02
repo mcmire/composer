@@ -1,0 +1,11 @@
+#!/bin/bash
+
+pid=$(pgrep mongod)
+
+if [[ -n $pid ]] && kill -0 "$pid"; then
+  echo "MongoDB is already running [pid $pid]"
+else
+  mongod >/dev/null 2>&1 &
+  sleep 1
+  echo "MongoDB started [pid $(pgrep mongod)]"
+fi

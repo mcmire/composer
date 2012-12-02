@@ -1,6 +1,6 @@
 noop:
 
-init: install-deps
+setup: install-deps
 
 start: mongo-start server-start
 
@@ -9,17 +9,17 @@ stop: mongo-stop
 #---
 
 install-deps:
-	# I tried to do this using npm 'scripts' property but it doesn't work
-	npm install
-	(pushd client; npm install)
-	(pushd server; npm install)
+	@./scripts/install-deps
 
 mongo-start:
-	mongod >/dev/null 2>&1 &
-	echo "Mongo started."
+	@./scripts/mongo-start
 
 mongo-stop:
-	pkill mongod
+	@./scripts/mongo-stop
 
 server-start:
-	foreman start
+	@./scripts/server-start
+
+#---
+
+.PHONY: noop init start stop install-deps mongo-start mongo-stop server-start

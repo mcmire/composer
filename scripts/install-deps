@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# I tried to do this using npm 'scripts' property but it doesn't work
+npm install
+(pushd client; npm install)
+(pushd server; npm install)
