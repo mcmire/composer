@@ -3,7 +3,7 @@
 The goal here is to teach a computer how to generate music through some form of
 supervised machine learning.
 
-There isn't a whole lot here at the moment, look at [TODO.md](TODO.md) if you
+There isn't a whole lot here at the moment, look at [TODO.md][TODO] if you
 are interested in what's down the road.
 
 You can find the latest version on Heroku at: <http://mcmire-composer.heroku.com>
@@ -11,38 +11,43 @@ You can find the latest version on Heroku at: <http://mcmire-composer.heroku.com
 
 ## Architecture
 
-* node.js / [Express](http://expressjs.com/) to serve files and provide backend
-  logic
+* node.js / [Express][express] to serve files and provide backend logic
 * MongoDB as the "brain" (i.e. persistent data store)
-* [Ender.js](http://ender.jit.su/) (domReady, Valentine, Qwery, Bean, Bonzo,
-  Reqwest) on the front end for DOM selection/interaction/manipulation and
-  utility methods
-* [Web Audio API](https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html)
-  to play the audio samples
+* [Ender.js][ender] (domReady, Valentine, Qwery, Bean, Bonzo, Reqwest) on the
+  front end for DOM selection/interaction/manipulation and utility methods
+* [Hercules][hercules] to provide a require() shim so we can share code between
+  browser and node.js
+* [Web Audio API][web-audio-api] to play the audio samples
 
 
-## Code style
+## Notes on code style
 
-As most of the app is JavaScript, I am experimenting with a different code style
-in this project:
+In my day to day I write CoffeeScript, and I have used it heavily in the past,
+too (see [rpg][], [sprite-editor][], etc.). I actually really like CoffeeScript
+-- concise syntax, array comprehensions, etc. But there are improvements I would
+like to see in CoffeeScript that will never happen because of the limitations of
+JavaScript, and ultimately this is a showstopper for me.
 
-* No CoffeeScript this time around. I like CoffeeScript, but it's really
-  lipstick on a pig if you think about it. You're still going to have to deal
-  with JavaScript at some point, and is writing JavaScript really *that*
-  painful?
-* Comma-first (npm) style. I know -- it looks retarded. It actually works
-  pretty well, though.
+So I going back to JavaScript in this app, but this time I am experimenting with
+a different code style:
+
+* Comma-first (npm) style. I know -- it looks retarded. But I've read the
+  article that Isaac wrote and I actually agree with his points. It actually
+  works pretty well.
 * Hoist all of the variable definitions within a scope to the very top
   (constants go first, then defaults, then emptys, then methods). Define methods
   as locals, then expose them at the bottom explicitly. This goes for classes
   too.
-* Actually make real private properties/methods, none of this fake this._foo
+* Actually make real private properties/methods, none of this fake `this._foo`
   crap. For classes, it's okay to define private functions inside of your
   constructor -- optimization shoptimization.
 * Initially I thought Thou Shalt Always Use Curlies for If Statements, but I've
   slacked on that rule. I am not going to go as far as @ded and @fat, but on the
   other hand, we've got shorter ways of writing conditions, we might as well use
   some of them.
+
+So this ends up being kind of similar to @dedfat style, with the exception
+that I am not so concerned with sacrificing readability in favor of compactness.
 
 
 ## Running it locally
@@ -58,7 +63,7 @@ Next, clone this repo:
 
 Then cd into the 'composer' directory just created and run:
 
-    npm install
+    make init
 
 This will install the npm packages necessary to run this app, within a
 local node_modules directory.
@@ -85,5 +90,14 @@ You are free to use any code here as you like, whether for commercial
 or personal purposes.
 
 As this is a personal project, I do not provide any support or warranty.
+
+
+[TODO]: TODO.md
+[express]: http://expressjs.com/
+[ender]: http://ender.jit.su/
+[hercules]: https://github.com/rasmusrn/hercules
+[web-audio-api]: https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html
+[rpg]: http://github.com/mcmire/rpg
+[sprite-editor]: http://github.com/mcmire/sprite-editor
 
 
