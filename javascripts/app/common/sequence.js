@@ -90,7 +90,7 @@
   }
 
   if (typeof module === 'undefined') {
-    composer.Sequence = Sequence
+    composer.define('sequence', 'Sequence', Sequence)
   } else {
     module.exports = Sequence
   }

@@ -15,8 +15,8 @@ You can find the latest version on Heroku at: <http://mcmire-composer.heroku.com
 * MongoDB as the "brain" (i.e. persistent data store)
 * [Ender.js][ender] (domReady, Valentine, Qwery, Bean, Bonzo, Reqwest) on the
   front end for DOM selection/interaction/manipulation and utility methods
-* [Hercules][hercules] to provide a require() shim so we can share code between
-  browser and node.js
+* [Hem][hem] to provide a require() shim so we can share code between
+  browser and node.js, and to bundle things up before deployment
 * [Web Audio API][web-audio-api] to play the audio samples
 
 
@@ -63,18 +63,15 @@ Next, clone this repo:
 
 Then cd into the 'composer' directory just created and run:
 
-    make init
+    make setup
 
-This will install the npm packages necessary to run this app, within a
-local node_modules directory.
+This will install the npm packages necessary to run this app.
 
-If MongoDB is not running yet, run:
+Now say:
 
-    make mongo
+    make start
 
-To run the app, say:
-
-    make server
+This will ensure that MongoDB is started, and then start the web server.
 
 Now go to http://localhost:5010 in your browser.
 
@@ -95,7 +92,7 @@ As this is a personal project, I do not provide any support or warranty.
 [TODO]: TODO.md
 [express]: http://expressjs.com/
 [ender]: http://ender.jit.su/
-[hercules]: https://github.com/rasmusrn/hercules
+[hem]: https://github.com/maccman/hem
 [web-audio-api]: https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html
 [rpg]: http://github.com/mcmire/rpg
 [sprite-editor]: http://github.com/mcmire/sprite-editor

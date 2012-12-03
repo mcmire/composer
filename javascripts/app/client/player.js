@@ -1,7 +1,5 @@
 'use strict'
 
-window.composer = composer || {}
-
 composer.player = (function () {
   var audio = composer.audio
 
@@ -78,3 +76,4 @@ composer.player = (function () {
   , stop: stop
   }
 })()
+

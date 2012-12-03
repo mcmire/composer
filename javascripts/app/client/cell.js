@@ -1,8 +1,8 @@
 'use strict'
 
-window.composer = composer || {}
+composer.define('cell', function () {
+  var v = valentine
 
-composer.Cell = (function () {
   function Cell(track, durationTicks, isOn) {
     var goalState
 
@@ -35,7 +35,7 @@ composer.Cell = (function () {
           }
         }
 
-    $.v.extend(this, {
+    v.extend(this, {
       durationInTicks: durationInTicks
     , isOn: isOn
     , getTrack: getTrack
@@ -50,4 +50,5 @@ composer.Cell = (function () {
   }
 
   return Cell
-})()
+})
+

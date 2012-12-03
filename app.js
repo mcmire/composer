@@ -4,10 +4,9 @@ var path = require('path')
 
   , express = require('express')
   , v = require('valentine')
-  , stitch = require('stitch')
 
-  , Sequence = require('../shared/sequence')
-  , util = require('../shared/util')
+  , Sequence = require('./javascripts/app/common/sequence')
+  , util = require('./javascripts/app/common/util')
 
   , connectToDatabase = function(fn) {
       var mongodb = require('mongodb')
@@ -23,29 +22,22 @@ var path = require('path')
     }
 
 connectToDatabase(function(db) {
-  var rootDir = path.join(__dirname, '..')
-    , clientDir = path.join(rootDir, 'client')
-    , clientPackage = stitch.createPackage({
-        paths: [clientDir]
-      })
+  var rootDir = path.join(__dirname)
     , app = express()
     , appPort = process.env.PORT
 
-  app.use('/javascripts/shared', express.static(path.join(rootDir, 'shared')))
-  app.use('/javascripts/client', express.static(path.join(rootDir, 'client/javascripts')))
-  app.use('/stylesheets',        express.static(path.join(rootDir, 'client/stylesheets')))
-  app.use('/samples',            express.static(path.join(rootDir, 'client/samples')))
+  app.use('/javascripts', express.static(path.join(rootDir, 'javascripts')))
+  app.use('/stylesheets', express.static(path.join(rootDir, 'stylesheets')))
+  app.use('/audio', express.static(path.join(rootDir, 'audio')))
 
   app.use(express.bodyParser())
   app.use(express.logger())
 
   app.get('/', function (req, res) {
-    var file = path.join(rootDir, 'client/index.html')
+    var file = path.join(rootDir, 'index.html')
       , html = fs.readFileSync(file, 'utf-8')
     res.send(html)
   })
-
-  app.get('/javascripts/client/deps.js', clientPackage.createServer())
 
   app.get('/sequences/new', function (req, res) {
     var sequence = new Sequence(this)

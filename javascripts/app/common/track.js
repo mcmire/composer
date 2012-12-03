@@ -87,7 +87,7 @@
   }
 
   if (typeof module === 'undefined') {
-    composer.Track = Track
+    composer.define('track', 'Track', Track)
   } else {
     module.exports = Track
   }

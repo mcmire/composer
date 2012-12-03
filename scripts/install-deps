@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# I tried to do this using npm 'scripts' property but it doesn't work
+set -e
+
 npm install
-(pushd client; npm install)
-(pushd server; npm install)
+
+mkdir -p javascripts/vendor
+cp node_modules/bean/bean.js javascripts/vendor/bean.js
+cp node_modules/bonzo/bonzo.js javascripts/vendor/bonzo.js
+cp node_modules/domready/ready.js javascripts/vendor/ready.js
+cp node_modules/qwery/qwery.js javascripts/vendor/qwery.js
+cp node_modules/reqwest/reqwest.js javascripts/vendor/reqwest.js
+cp node_modules/valentine/valentine.js javascripts/vendor/valentine.js

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 pid=$(pgrep mongod)
 
 if [[ -n $pid ]] && kill -0 "$pid"; then

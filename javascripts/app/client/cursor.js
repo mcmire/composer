@@ -1,7 +1,5 @@
 'use strict'
 
-window.composer = composer || {}
-
 composer.cursor = (function () {
   var canvas
     , main
@@ -89,7 +87,7 @@ composer.cursor = (function () {
         moveTo(canvas.getTickPosition(main.getCurrentTick()))
       }
 
-  module.exports = {
+  return {
     init: init
   , setBpm: setBpm
   , setSequence: setSequence
@@ -98,3 +96,4 @@ composer.cursor = (function () {
   , update: update
   }
 })()
+

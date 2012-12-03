@@ -48,8 +48,9 @@
   }
 
   if (typeof module === 'undefined') {
-    composer.NoteEvent = NoteEvent
+    composer.define('note_event', 'NoteEvent', NoteEvent)
   } else {
     module.exports = NoteEvent
   }
 })()
+

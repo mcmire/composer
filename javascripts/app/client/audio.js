@@ -55,7 +55,7 @@ composer.audio = (function () {
 
     , loadSamples = function (fn) {
         var samples = v.map(SAMPLE_NAMES, function (name) {
-          return {name: name, url: "samples/"+name+".wav"}
+          return {name: name, url: "audio/"+name+".wav"}
         })
         samplesByName = util.arr.indexBy(samples, 'name')
         var samplesByUrl = util.arr.indexBy(samples, 'url')

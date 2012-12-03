@@ -1,7 +1,5 @@
 'use strict'
 
-window.composer = composer || {}
-
 composer.main = (function () {
   var util = composer.util
 
@@ -192,3 +190,4 @@ composer.main = (function () {
   , getNumberOfIterations: getNumberOfIterations
   }
 })()
+

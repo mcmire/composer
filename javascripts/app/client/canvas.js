@@ -1,7 +1,5 @@
 'use strict'
 
-window.composer = composer || {}
-
 composer.canvas = (function () {
   var CELL_SIZE = 32    // pixels
     , CELL_PADDING = 8  // pixels
@@ -140,3 +138,4 @@ composer.canvas = (function () {
   , removeEvents: removeEvents
   }
 })()
+

@@ -205,7 +205,7 @@
     }
 
   if (typeof module === 'undefined') {
-    composer.util = util
+    composer.define('util', 'util', util)
   } else {
     module.exports = util
   }
