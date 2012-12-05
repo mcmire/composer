@@ -41,15 +41,11 @@
   </div>
 </div>
 
-<script src="/javascripts/vendor/ready.js"></script>
-<script src="/javascripts/vendor/valentine.js"></script>
-<script src="/javascripts/vendor/qwery.js"></script>
-<script src="/javascripts/vendor/bean.js"></script>
-<script src="/javascripts/vendor/bonzo.js"></script>
-<script src="/javascripts/vendor/reqwest.js"></script>
+<script src="/javascripts/vendor/ender.js"></script>
 
 <script src="/javascripts/app/client/index.js"></script>
 
+<script src="/javascripts/app/common/index.js"></script>
 <script src="/javascripts/app/common/util.js"></script>
 <script src="/javascripts/app/common/note_event.js"></script>
 <script src="/javascripts/app/common/track.js"></script>
@@ -64,7 +60,7 @@
 <script src="/javascripts/app/client/main.js"></script>
 
 <script>
-  bean.on(window, 'load', function() {
+  $(window).on('load', function() {
     composer.init({bpm: 20})
   })
 </script>

@@ -1,9 +1,7 @@
 'use strict'
 
 composer.audio = (function () {
-  var v = valentine
-
-    , util = composer.util
+  var util = composer.util
 
     , SAMPLE_NAMES = ['hic', 'hio', 'kick', 'snare', 'ticu', 'ticd']
 
@@ -54,15 +52,15 @@ composer.audio = (function () {
       }
 
     , loadSamples = function (fn) {
-        var samples = v.map(SAMPLE_NAMES, function (name) {
+        var samples = $.v.map(SAMPLE_NAMES, function (name) {
           return {name: name, url: "audio/"+name+".wav"}
         })
-        samplesByName = util.arr.indexBy(samples, 'name')
-        var samplesByUrl = util.arr.indexBy(samples, 'url')
-        var sampleUrls = v.map(samples, function (s) { return s.url })
+        samplesByName = util.array.indexBy(samples, 'name')
+        var samplesByUrl = util.array.indexBy(samples, 'url')
+        var sampleUrls = $.v.map(samples, function (s) { return s.url })
 
         util.audio.loadBuffers(audioContext, sampleUrls, function (buffers) {
-          v.each(buffers, function (buffer) {
+          $.v.each(buffers, function (buffer) {
             var sample = samplesByUrl[buffer.url]
             sample.buffer = buffer.buffer
           })

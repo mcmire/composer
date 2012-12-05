@@ -1,9 +1,7 @@
 'use strict'
 
 composer.AudioEvent = (function () {
-  var v = valentine
-
-    , audio = composer.audio
+  var audio = composer.audio
     , main = composer.main
 
   // You should only create an AudioEvent object if you are about to schedule a
@@ -56,7 +54,7 @@ composer.AudioEvent = (function () {
           return audioNode.playbackState == 2
         }
 
-    v.extend(this, {
+    $.v.extend(this, {
       getDurationInTicks: getDurationInTicks
     , scheduleAt: scheduleAt
     , stop: stop
