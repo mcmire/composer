@@ -17,6 +17,11 @@
               return sampleName
             }
 
+            // for debugging purposes
+          , getNoteEvents = function () {
+              return noteEvents
+            }
+
           , addOnNoteEvent = function (durationInTicks) {
               return addNoteEvent.call(this, durationInTicks, true)
             }
@@ -25,7 +30,7 @@
               return addNoteEvent.call(this, durationInTicks, false)
             }
 
-          , addNoteEvent = function (/* noteEvent | durationInTicks, isOn */) {
+          , addNoteEvent = function (/* [noteEvent] | [durationInTicks, isOn] */) {
               var noteEvent
               if (arguments.length === 1) {
                 noteEvent = arguments[0]
@@ -65,9 +70,9 @@
             }
 
         v.extend(this, {
-          getNoteEvents: noteEvents   // for debugging purposes
-        , getSequence: getSequence
+          getSequence: getSequence
         , getSampleName: getSampleName
+        , getNoteEvents: getNoteEvents
         , addOnNoteEvent: addOnNoteEvent
         , addOffNoteEvent: addOffNoteEvent
         , addNoteEvent: addNoteEvent

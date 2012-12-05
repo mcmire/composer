@@ -3,11 +3,6 @@
 composer.main = (function () {
   var util = composer.util
 
-    , TRACKS = ['snare', 'kick']
-    , NUMBER_OF_TICKS = 16
-    , TICK_DURATION_IN_BEATS = 1 / NUMBER_OF_TICKS
-    , NUMBER_OF_ITERATIONS = 4
-
     , canvas
     , cursor
     , player
@@ -51,14 +46,14 @@ composer.main = (function () {
       }
 
     , getNumberOfIterations = function () {
-        return NUMBER_OF_ITERATIONS
+        return composer.numberOfIterations
       }
 
     , setBpm = function (_bpm) {
         bpm = _bpm
         // ex: 120 bpm is 120 beats / 60 seconds or 0.5 per beat
         spb = 60 / bpm
-        secondsPerTick = (TICK_DURATION_IN_BEATS / bpm) * 60
+        secondsPerTick = (composer.tickDurationInBeats / bpm) * 60
         cursor.setBpm(bpm)
       }
 
@@ -107,11 +102,11 @@ composer.main = (function () {
       }
 
     , nextTick = function (number) {
-        setToTick((currentTick + 1) % (NUMBER_OF_TICKS + 1))
+        setToTick((currentTick + 1) % (composer.numberOfTicks + 1))
       }
 
     , prevTick = function (number) {
-        setToTick(currentTick === 0 ? NUMBER_OF_TICKS : currentTick - 1)
+        setToTick(currentTick === 0 ? composer.numberOfTicks : currentTick - 1)
       }
 
     , setToStart = function () {
@@ -119,7 +114,7 @@ composer.main = (function () {
       }
 
     , setToEnd = function () {
-        setToTick(NUMBER_OF_TICKS)
+        setToTick(composer.numberOfTicks)
       }
 
     , loadNewSequence = function () {
@@ -182,8 +177,6 @@ composer.main = (function () {
 
   return {
     init: init
-  , tracks: TRACKS
-  , numberOfTicks: NUMBER_OF_TICKS
   , ticksToTime: ticksToTime
   , getCurrentSequence: getCurrentSequence
   , getCurrentTick: getCurrentTick

@@ -4,7 +4,9 @@
   var v = require('valentine')
 
     , NoteEvent = function NoteEvent(track, durationInTicks, isOn) {
-        var getTrack = function () {
+        var goalState
+
+          , getTrack = function () {
               return track
             }
 

@@ -107,7 +107,7 @@ composer.canvas = (function () {
               , trackIndex = $cell.data('track-idx')
               , cellIndex = $cell.data('idx')
               , sequence = main.getCurrentSequence()
-            sequence.toggleCellGoalState(trackIndex, cellIndex)
+            sequence.toggleGoalStateOfNoteEvent(trackIndex, cellIndex)
             return $(this).toggleClass('selected')
           })
           .on('mousedown.composer.canvas', '.cell', function () {

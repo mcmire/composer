@@ -6,10 +6,10 @@
 
     , Sequence = function Sequence() {
         var tracks = []
-          , cellsByTick = []
+          , noteEventsByTick = []
 
           , getDurationInTicks = function() {
-              return cellsByTick.length
+              return noteEventsByTick.length
             }
 
           , addTrack = function (/* track | sampleName */) {
@@ -31,14 +31,14 @@
               return tracks.length
             }
 
-          , addCell = function (tickNo, cell) {
-              (cellsByTick[tickNo] || (cellsByTick[tickNo] = [])).push(cell)
+          , addNoteEvent = function (tickNo, noteEvent) {
+              (noteEventsByTick[tickNo] || (noteEventsByTick[tickNo] = [])).push(noteEvent)
             }
 
           , eachTick = function (fn) {
               var i = 0
               while (i < getDurationInTicks()) {
-                fn(cellsByTick[i] || [], i)
+                fn(noteEventsByTick[i] || [], i)
                 i++
               }
             }
@@ -47,15 +47,15 @@
               return tracks[trackIndex]
             }
 
-          , findCell = function (trackIndex, cellIndex) {
+          , findNoteEvent = function (trackIndex, noteEventIndex) {
               var track = findTrack(trackId)
-              return (track && track.findCell(cellIndex))
+              return (track && track.findNoteEvent(noteEventIndex))
             }
 
-          , toggleCellGoalState = function (trackIndex, cellIndex) {
+          , toggleGoalStateOfNoteEvent = function (trackIndex, noteEventIndex) {
               var track = findTrack(trackIndex)
-                , cell = (track && track.findCell(cellIndex))
-              cell && cell.toggleGoalState()
+                , noteEvent = (track && track.findNoteEvent(noteEventIndex))
+              noteEvent && noteEvent.toggleGoalState()
             }
 
           , toStore = function () {
@@ -73,10 +73,10 @@
         , addTrack: addTrack
         , eachTrack: eachTrack
         , getNumTracks: getNumTracks
-        , addCell: addCell
+        , addNoteEvent: addNoteEvent
         , eachTick: eachTick
-        , findCell: findCell
-        , toggleCellGoalState: toggleCellGoalState
+        , findNoteEvent: findNoteEvent
+        , toggleGoalStateOfNoteEvent: toggleGoalStateOfNoteEvent
         , toStore: toStore
         })
       }
