@@ -15,9 +15,34 @@ You can find the latest version on Heroku at: <http://mcmire-composer.heroku.com
 * MongoDB as the "brain" (i.e. persistent data store)
 * [Ender.js][ender] (domReady, Valentine, Qwery, Bean, Bonzo, Reqwest) on the
   front end for DOM selection/interaction/manipulation and utility methods
-* [Hem][hem] to provide a require() shim so we can share code between
-  browser and node.js, and to bundle things up before deployment
+* Very simple techniques for sharing code between server and browser
 * [Web Audio API][web-audio-api] to play the audio samples
+
+
+## Running it locally
+
+First install the essentials:
+
+* node.js: `brew install nodejs`
+* MongoDB: `brew install mongodb`
+
+Next, clone this repo:
+
+    git clone http://github.com/mcmire/composer
+
+Then cd into the 'composer' directory just created and run:
+
+    make setup
+
+This will install the npm dependencies necessary to run this app.
+
+Now say:
+
+    make start
+
+This will ensure that MongoDB is started, and then start the web server.
+
+Now go to http://localhost:5000 in your browser.
 
 
 ## Notes on code style
@@ -48,32 +73,6 @@ a different code style:
 
 So this ends up being kind of similar to @dedfat style, with the exception
 that I am not so concerned with sacrificing readability in favor of compactness.
-
-
-## Running it locally
-
-First install the essentials:
-
-* node.js: `brew install nodejs`
-* MongoDB: `brew install mongodb`
-
-Next, clone this repo:
-
-    git clone http://github.com/mcmire/composer
-
-Then cd into the 'composer' directory just created and run:
-
-    make setup
-
-This will install the npm packages necessary to run this app.
-
-Now say:
-
-    make start
-
-This will ensure that MongoDB is started, and then start the web server.
-
-Now go to http://localhost:5010 in your browser.
 
 
 ## Author/Copyright
