@@ -37,30 +37,33 @@
         }
       }
 
-    , arr = {
-        indexBy: function (array, key) {
+    , array = {
+        indexBy: function (arr, key) {
           var hash = {}
-          v.each(array, function (obj) {
+          v.each(arr, function (obj) {
             hash[obj[key]] = obj
           })
           return hash
         }
 
-      , groupBy: function (array, key) {
+      , groupBy: function (arr, key) {
           var hash = {}
-          v.each(array, function (obj) {
+          v.each(arr, function (obj) {
             (obj[key] in hash) || obj[key] = []
             hash[obj[key]].push(obj)
           })
           return hash
         }
 
-      , delete: function (array, elem) {
-          arr.deleteAt(array.indexOf(elem))
+      , delete: function (arr, elem) {
+          var index = arr.indexOf(elem)
+          if (index >= 0) {
+            array.deleteAt(arr, index)
+          }
         }
 
-      , deleteAt: function (array, index) {
-          array.splice(index, 1)
+      , deleteAt: function (arr, index) {
+          arr.splice(index, 1)
         }
       }
 
@@ -164,14 +167,19 @@
       // Methods for extending existing objects
 
       , copyWith: function () {
-          var mixins = __slice(arguments)
-            , _obj = mixins.shift()
-          if (util.is.plainObject(_obj)) {
-            return v.extend.apply(v, [true, {}, _obj].concat(mixins))
-          } else if (Array.isArray(_obj)) {
-            return v.extend.apply(v, [true, [], _obj].concat(mixins))
+          var args = __slice.call(arguments)
+            , ret
+          if (util.is.plainObject(args[0])) {
+            return v.extend.apply(v, [{}].concat(args))
+          } else if (Array.isArray(args[0])) {
+            ret = []
+            for (var i = 0, len = args.length; i < len; i++) {
+              // ah, JavaScript, you amuse me so
+              ret = ret.concat(args[i])
+            }
+            return ret
           } else {
-            return _obj
+            return args[0]
           }
         }
       }
@@ -191,18 +199,21 @@
           return random.int(0, 1)
         }
 
-      , sample: function (array) {
-          return array[random.int(0, array.length)]
+      , sample: function (arr) {
+          return arr[random.int(0, arr.length-1)]
         }
       }
 
     , util = {
-      audio: audio
-    , arr: arr
-    , is: is
-    , obj: obj
-    , random: random
-    }
+        audio: audio
+      , array: array
+      , is: is
+      , obj: obj
+      , random: random
+      }
+
+  util.obj.clone = util.obj.cloneWith
+  util.obj.copy = util.obj.copyWith
 
   if (typeof module === 'undefined') {
     composer.define('util', 'util', util)
