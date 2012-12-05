@@ -1,10 +1,12 @@
 
-var path = require('path')
+var nodeutil = require('util')
+  , path = require('path')
   , fs = require('fs')
 
   , express = require('express')
   , v = require('valentine')
 
+  , composer = require('./javascripts/app/common/index')
   , Sequence = require('./javascripts/app/common/sequence')
   , util = require('./javascripts/app/common/util')
 
@@ -24,7 +26,7 @@ var path = require('path')
 connectToDatabase(function(db) {
   var rootDir = path.join(__dirname)
     , app = express()
-    , appPort = process.env.PORT
+    , appPort = process.env.PORT || 5000
 
   app.use('/javascripts', express.static(path.join(rootDir, 'javascripts')))
   app.use('/stylesheets', express.static(path.join(rootDir, 'stylesheets')))
@@ -41,50 +43,102 @@ connectToDatabase(function(db) {
 
   app.get('/sequences/new', function (req, res) {
     var sequence = new Sequence(this)
-      , allStates = ['start', 'end', null]
+      , allStates = [
+          ['start']         // => ['end'], ['end', 'start'], null
+        , ['end']           // => ['start'], null
+        , ['end', 'start']  // => ['end'], null
+        , null              // => ['start'], ['end'], ['end', 'start']
+        ]
 
-    v.each(main.tracks, function (sampleName) {
-      var track = sequence.addTrack(sampleName)
-        , tickStates = []
-        , possibleStates = util.copy(allStates)
+    var generateTickStates = function () {
+      var tickStates = []
         , isOpen = false
-        , lastStateAt = []
+        , possibleStates
         , state
+        , lastState
 
-      for (var i = 0, len = main.numberOfTicks; i < len; i++) {
+      for (var i = 0, len = composer.numberOfTicks+1; i < len; i++) {
         if (isOpen && i === len-1) {
-          state = 'end'
+          state = ['end']
         } else {
-          if (isOpen) {
-            util.array.delete(possibleStates, 'start')
+          if (lastState) {
+            possibleStates = v.reject(allStates, function (s) {
+              if (s === null) { return false }
+              if (lastState === s) { return true }
+              return (lastState[lastState.length-1] === s[0])
+            })
           } else {
-            util.array.delete(possibleStates, 'end')
+            possibleStates = [ ['start'] , null ]
           }
           state = util.random.sample(possibleStates)
         }
         tickStates.push(state)
-        if (state === 'start')    { isOpen = true  }
-        else if (state === 'end') { isOpen = false }
-      }
 
-      v.each(tickStates, function (state, i) {
-        if (state === 'start') {
-          if (lastStateAt[0] === 'end') {
-            track.addOffCell(i - lastStateAt[1]);
+        if (state) {
+          if (state[state.length-1] === 'start') {
+            isOpen = true
+          } else if (state[state.length-1] === 'end') {
+            isOpen = false
           }
-          lastStateAt = [state, i]
-        } else if (state === 'end') {
-          if (lastStateAt[0] === 'start') {
-            track.addOnCell(i - lastStateAt[1]);
-          }
-          lastStateAt = [state, i]
         }
+
+        if (state) { lastState = state }
+      }
+      console.log({tickStates: tickStates})
+
+      return tickStates
+    }
+
+    var tickStatesToNoteEvents = function (track, tickStates) {
+      var totalDurationInTicks = 0
+        , lastNoteEventAt
+        , state
+      v.each(tickStates, function (state, i) {
+        var finalState
+          , durationInTicks
+          , isOn
+          , noteEvent
+
+        if (!state) { return }
+
+        // Test cases:
+        // * null -> does nothing
+        // * null..., start -> note off event
+        // * start, [null...], end -> note on event for end.index - start.index
+        // * end, [null...], start -> note off event for start.index - end.index
+        // * start, [null...], end|start -> end makes note on event, start does
+        //   nothing until end
+        // * start, [null...], <eof> -> autocreates note on event
+
+        // If it's the first start event and doesn't appear at index 0, add a
+        // note off event up to the start
+        if (i > 0) {
+          if (!lastNoteEventAt && state[0] == ['start']) {
+            durationInTicks = i
+            noteEvent = track.addNoteEvent(durationInTicks, false)
+          } else {
+            durationInTicks = i - lastNoteEventAt[1]
+            isOn = (state[0] === 'end')
+            noteEvent = track.addNoteEvent(durationInTicks, isOn)
+          }
+          totalDurationInTicks += durationInTicks
+        }
+        lastNoteEventAt = [noteEvent, i]
       })
+      console.log(nodeutil.inspect({
+        totalDurationInTicks: totalDurationInTicks
+      , track: track.toStore()
+      }, true, null))
+    }
+
+    v.each(composer.tracks, function (sampleName) {
+      var track = sequence.addTrack(sampleName)
+      var tickStates = generateTickStates()
+      tickStatesToNoteEvents(track, tickStates)
     })
 
-    console.log(sequence.toStore())
-    //res.send(sequence.toStore())
-    res.send(200)
+    res.send(sequence.toStore())
+    //res.send(200)
   })
 
   app.post('/sequences', function (req, res) {
