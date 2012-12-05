@@ -73,11 +73,11 @@ a {
 
 .cell {
   border-style: solid;
-  border-color: silver;
+  border-color: white;
   border-top-width: 1px;
   border-bottom-width: 1px;
   border-left-width: 0px;
-  border-right-width: 0px;
+  border-right-width: 1px;
   cursor: pointer;
   position: relative;
 }
@@ -98,7 +98,7 @@ a {
   display: none;
 }
 .cell.on {
-  border-color: black;
+  /*border-color: black;*/
   background-color: black;
 }
 
