@@ -14,10 +14,10 @@ composer.canvas = (function () {
 
     , init = function (_main) {
         main = _main
-        numberOfTicks = main.numberOfTicks
+        numberOfTicks = composer.numberOfTicks
         $elem = $('#canvas')
         $board = $('#board').css({
-          width: CELL_SIZE * main.numberOfTicks
+          width: CELL_SIZE * composer.numberOfTicks
         })
         $labels = $('#labels')
         $cells = $('#cells')
@@ -75,23 +75,23 @@ composer.canvas = (function () {
             })
           $labels.append($label)
 
-          track.eachCell(function (cell, cellIndex) {
+          track.eachNoteEvent(function (noteEvent, noteEventIndex) {
             var $cell = $('<div class="cell"><div></div></div>')
               .data('track-idx', trackIndex)
-              .data('idx', cellIndex)
+              .data('idx', noteEventIndex)
               .css({
-                width: CELL_SIZE * cell.durationInTicks
+                width: CELL_SIZE * noteEvent.durationInTicks
               , height: CELL_SIZE
               })
-            if (cell.isOn) {
+            if (noteEvent.isOn) {
               $cell.addClass('on').find('> div').append("✗")
             } else {
               $cell.find('> div').append("✓")
             }
-            if (cellIndex === 0) {
+            if (noteEventIndex === 0) {
               $cell.addClass('first')
             }
-            if (cellIndex === track.getNumCells()-1) {
+            if (noteEventIndex === track.getNumNoteEvents()-1) {
               $cell.addClass('last')
             }
             $track.append($cell)

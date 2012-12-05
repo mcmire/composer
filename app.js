@@ -99,8 +99,6 @@ connectToDatabase(function(db) {
           , isOn
           , noteEvent
 
-        if (!state) { return }
-
         // Test cases:
         // * null -> does nothing
         // * null..., start -> note off event
@@ -110,13 +108,29 @@ connectToDatabase(function(db) {
         //   nothing until end
         // * start, [null...], <eof> -> autocreates note on event
 
-        // If it's the first start event and doesn't appear at index 0, add a
-        // note off event up to the start
+        if (!state) {
+          // If it's the last state and it's null, then create a note off event
+          // for however long we've been null.
+          if (i === tickStates.length-1) {
+            durationInTicks = i - lastNoteEventAt[1]
+            noteEvent = track.addNoteEvent(durationInTicks, false)
+          }
+          return
+        }
+
+        // Skip the first event because it's the next one that decides something
+        // (assuming it is non-null).
         if (i > 0) {
+          // If it's the first start event and doesn't appear at index 0, add a
+          // note off event up to the start.
           if (!lastNoteEventAt && state[0] == ['start']) {
             durationInTicks = i
             noteEvent = track.addNoteEvent(durationInTicks, false)
-          } else {
+          }
+          // Otherwise, add a note event depending on which state this is.
+          // Going from start to end creates a note on event, going from end to
+          // start creates a note off event.
+          else {
             durationInTicks = i - lastNoteEventAt[1]
             isOn = (state[0] === 'end')
             noteEvent = track.addNoteEvent(durationInTicks, isOn)

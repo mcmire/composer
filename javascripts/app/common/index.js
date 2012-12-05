@@ -9,6 +9,8 @@
     , composer = {
         tracks: TRACKS
       , numberOfTicks: NUMBER_OF_TICKS
+      , tickDurationInBeats: TICK_DURATION_IN_BEATS
+      , numberOfIterations: NUMBER_OF_ITERATIONS
       }
 
   if (typeof module === 'undefined') {

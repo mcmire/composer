@@ -2,6 +2,7 @@
 
 composer.main = (function () {
   var util = composer.util
+    , Sequence = composer.Sequence
 
     , canvas
     , cursor
@@ -80,7 +81,6 @@ composer.main = (function () {
         isRunning = true
         player.start()
         cursor.start()
-        // add 300ms so the sound doesn't cut off
         autoStopTimer = setTimeout(function() { stop() }, durationInTime * 1000)
       }
 
@@ -121,7 +121,6 @@ composer.main = (function () {
         $.ajax({
           method: 'get'
         , type: 'json'
-        , contentType: 'application/json'
         , url: '/sequences/new'
         , success: function (sequenceData) {
             setSequence(Sequence.fromStore(sequenceData))

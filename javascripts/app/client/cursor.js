@@ -20,7 +20,7 @@ composer.cursor = (function () {
         main = canvas.getMain()
         $elem = $('#cursor')
         elem = $elem[0]
-        numberOfTicks = main.numberOfTicks
+        numberOfTicks = composer.numberOfTicks
         finishDistance = canvas.getTickPosition('last')
         return this
       }
@@ -39,9 +39,8 @@ composer.cursor = (function () {
               now,
               pctComplete
 
-          if (!isRunning) {
-            return
-          }
+          if (!isRunning) { return }
+
           // map time to pixels
           // not a 1-to-1, pixels < time so some frames will be no movement
           // at the same time cannot assume time-pixel synchronicity so if we have
